@@ -8,17 +8,25 @@ conn = psycopg2.connect(host=config["HOST"],dbname = config["DBNAME"], user=conf
 cur = conn.cursor()
 
 #do stuff
-cur.execute("""--sql SELECT * FROM practice;""")
+
+cur.execute("""--sql
+            CREATE TEMPORARY TABLE tmp_table AS SELECT * FROM practice WITH NO DATA;
+            """)
+
+with open(config["CSV_FILE_PATH"]) as f:
+    cur.copy_expert('COPY tmp_table FROM STDIN WITH HEADER CSV', f)
+
+cur.execute("""--sql
+            INSERT INTO practice SELECT * FROM tmp_table ON CONFLICT DO NOTHING;
+            """)
+
+cur.execute("""SELECT * FROM practice;""")
 for row in cur.fetchall():
     print(row)
 
-cur.execute("""--sql CREATE TEMP TABLE tmp_table AS SELECT * FROM practice WITH NO DATA;""")
-
-cur.execute("""--sql COPY tmp_table FROM '<file-here>.csv' DELIMITER ',' CSV;""")
-            
-cur.execute("""--sql INSERT INTO practice SELECT * FROM tmp_table ON CONFLICT DO NOTHING;""")
-
-cur.execute("""--sql DROP TABLE tmp_table;""")
+cur.execute("""--sql
+            DROP TABLE tmp_table;
+            """)
 
 conn.commit()
 
