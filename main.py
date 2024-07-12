@@ -35,4 +35,6 @@ conn.close()
 
 # do same gathering of data for building-polygons
 
-# execute merging of tables with building-polygons. save as 3rd table
+# execute merging of tables with building-polygons. save as 3rd table. subprocess in python
+
+# learn djnago as backend
