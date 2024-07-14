@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'datacollector',
+    'dataupdater',
     # 'datacollector.apps.DatacollectorConfig',
     'debug_toolbar'
 ]
