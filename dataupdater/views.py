@@ -48,6 +48,7 @@ def import_from_csv(table_name, filepath):
 def update_resale_prices(request):
     import_from_csv("datacollector_resaletransaction", config["CSV_FILE_PATH"])
     return redirect(datacollector_views.get_resale_prices)
+#! figure out how to merge new data with building polygons data to create a final table that merges resale prices and building polygons
 
 def update_building_polygons(request):
     return HttpResponse("update building polygons here")
