@@ -22,4 +22,7 @@ class ResaleTransaction(models.Model):
     
     def age_on_purchase(self):
         return 99 - int(self.remaining_lease)
+    
+    def address(self):
+        return f"{self.street_name} {self.block}"
 
