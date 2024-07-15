@@ -17,6 +17,9 @@ class ResaleTransaction(models.Model):
     def __str__(self):
         return f"{self.town} {self.block} {self.month} {self.resale_price}"
     
+    def get_keys():
+        return "month, town, flat_type, block, street_name, storey_range, floor_area_sqm, flat_model, lease_commence_date, remaining_lease, resale_price"
+    
     def age_on_purchase(self):
         return 99 - int(self.remaining_lease)
 
