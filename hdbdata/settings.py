@@ -42,8 +42,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'datacollector',
     'dataupdater',
-    # 'datacollector.apps.DatacollectorConfig',
-    'debug_toolbar'
+    'debug_toolbar',
+    'rest_framework'
+
 ]
 
 MIDDLEWARE = [

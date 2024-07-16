@@ -2,7 +2,7 @@ from django.http import HttpResponse
 import psycopg2
 from dotenv import dotenv_values
 from django.shortcuts import redirect
-from datacollector import views as datacollector_views
+from api import views as api_views
 
 config = dotenv_values(".env")
 
@@ -47,7 +47,7 @@ def import_from_csv(table_name, filepath):
 # Create your views here.
 def update_resale_prices(request):
     import_from_csv("datacollector_resaletransaction", config["CSV_FILE_PATH"])
-    return redirect(datacollector_views.get_resale_prices)
+    return redirect(api_views.get_resale_prices)
 #! figure out how to merge new data with building polygons data to create a final table that merges resale prices and building polygons
 
 def update_building_polygons(request):
