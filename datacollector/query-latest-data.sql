@@ -10,7 +10,7 @@ SELECT DISTINCT ON (full_unit_name) * FROM
 		|| ' ' || storey_range
 		|| ' ' || floor_area_sqm AS full_unit_name),
 	resale_price FROM datacollector_resaletransaction
-	ORDER BY full_unit_name, month, resale_price DESC) 
+	ORDER BY full_unit_name, month, id DESC) 
 orderedbyunitname;
 
 -- SELECT * FROM datacollector_resaletransaction;
