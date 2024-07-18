@@ -3,16 +3,16 @@ import psycopg2
 from dotenv import dotenv_values
 from django.shortcuts import redirect
 from api import views as api_views
-from common.util import import_csv_to_db
+from common.util.import_csv_to_db import import_from_csv_to_db
 
 config = dotenv_values(".env")
 
 # Create your views here.
 def update_resale_prices(request):
     if config["ENV"] == "DEV":
-        import_csv_to_db("datacollector_resaletransaction", config["RESALE_PRICE_CSV_FOLDER_PATH_DEV"])
+        import_from_csv_to_db("datacollector_resaletransaction", config["RESALE_PRICE_CSV_FOLDER_PATH_DEV"])
     elif config["ENV"] == "PROD":
-        import_csv_to_db("datacollector_resaletransaction", config["RESALE_PRICE_CSV_FOLDER_PATH_PROD"])
+        import_from_csv_to_db("datacollector_resaletransaction", config["RESALE_PRICE_CSV_FOLDER_PATH_PROD"])
     return redirect(api_views.get_resale_prices)
 
 

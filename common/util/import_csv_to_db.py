@@ -1,7 +1,7 @@
 
 import psycopg2
 from dotenv import dotenv_values
-from . import get_latest_file_in_folder
+from get_latest_file_in_folder import get_latest_file_in_folder
 
 config = dotenv_values(".env")
 
@@ -14,8 +14,12 @@ def import_from_csv_to_db(table_name, folderpath):
                 CREATE TEMPORARY TABLE tmp_table AS SELECT * FROM {table_name} WITH NO DATA;
                 """)
 
-    #find latest file in folderpath
-    filepath = get_latest_file_in_folder(folderpath)
+    # find latest file in folderpath
+    filepath:str|None = get_latest_file_in_folder(folderpath, "with-id", "csv")
+    if filepath ==  None:
+        cur.close()
+        conn.close()
+        return
 
     # copy csv items to temp table. csv file must have id column as primary key
     with open(filepath) as f:
