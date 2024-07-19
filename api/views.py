@@ -2,7 +2,8 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from datacollector.models import ResaleTransaction
-from .serializers import ResaleTransactionSerializer
+from postalcodedata.models import PostalCodeAddress
+from .serializers import ResaleTransactionSerializer, PostalCodeAddressSerializer
 
 @api_view(['GET'])
 def get_resale_prices(request):
@@ -22,8 +23,8 @@ def get_resale_prices(request):
     serializer = ResaleTransactionSerializer(transactions, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
-# @api_view(['GET'])
-# def get_resale_prices_latest(request):
-    
-#     serializer = ResaleTransactionSerializer(transactions, many=True)
-#     return Response(serializer.data)
+@api_view(['GET'])
+def get_postal_codes(request):
+    addresses = PostalCodeAddress.objects.all()
+    serializer = PostalCodeAddressSerializer(addresses, many=True)
+    return Response(serializer.data)
