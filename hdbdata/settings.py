@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'datacollector',
     'dataupdater',
+    'postalcodedata',
     'debug_toolbar',
     'rest_framework'
 
