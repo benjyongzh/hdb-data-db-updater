@@ -24,5 +24,5 @@ class ResaleTransaction(models.Model):
         return 99 - int(self.remaining_lease)
     
     def address(self):
-        return f"{self.street_name} {self.block}"
+        return f"{self.block} {self.street_name}"
 
