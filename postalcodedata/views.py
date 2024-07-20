@@ -6,7 +6,7 @@ from .models import PostalCodeAddress
 from .util.get_postal_code_from_address import get_postal_code_from_address
 from api.serializers import PostalCodeAddressSerializer
 
-@api_view(['POST'])
+@api_view(['GET'])
 def refresh_postal_code_data(request):
     all_addresses = ResaleTransaction.objects.distinct("block", "street_name").values("block", "street_name")
     recorded_addresses = PostalCodeAddress.objects.all().values("block", "street_name")
@@ -27,12 +27,10 @@ def refresh_postal_code_data(request):
         print(address_with_postal_code)
 
     # add address and postal code as new row to postalcodeaddress table.
-    final_addresses = PostalCodeAddress.objects.bulk_create(new_postal_code_objects)
+    final_new_addresses = PostalCodeAddress.objects.bulk_create(new_postal_code_objects)
 
     #! for each row extra in table, delete row.
 
-    #! redirect to api get_postal_codes
-    if len(final_addresses) > 0:
-        return Response(status=status.HTTP_201_CREATED)
-    else:
-        return Response(status=status.HTTP_200_OK)
+    # respond with new addresses
+    data = {"redirect_url": "/postal-codes/", "new_addresses": final_new_addresses}
+    return Response(data, status= status.HTTP_201_CREATED if len(final_new_addresses) > 0 else status.HTTP_200_OK)
