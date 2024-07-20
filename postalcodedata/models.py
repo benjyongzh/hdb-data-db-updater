@@ -7,7 +7,7 @@ class PostalCodeAddress(models.Model):
     postal_code = models.CharField(max_length=6)
 
     def __str__(self):
-        return f"{self.block} {self.month} {self.postal_code}"
+        return f"Full address of {self.block} {self.street_name} {self.postal_code}"
     
     def get_keys():
         return "block, street_name, postal_code"
