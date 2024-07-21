@@ -10,13 +10,21 @@ def get_resale_prices(request):
     if (request.query_params == {}):
         transactions = ResaleTransaction.objects.all()
     elif (request.query_params['latest'] == 'true'):
-        transactions = ResaleTransaction.objects.raw(
-        """
-        SELECT DISTINCT ON (street_name, block, flat_type, flat_model, storey_range, floor_area_sqm) * FROM
-            (SELECT * FROM datacollector_resaletransaction
-            ORDER BY street_name, block, flat_type, flat_model, storey_range, floor_area_sqm, month, id DESC)
-        orderedbyunitname;
-        """)
+        transactions = ResaleTransaction.objects.order_by(
+            "street_name",
+            "block",
+            "flat_type",
+            "flat_model",
+            "storey_range",
+            "floor_area_sqm",
+            "month",
+            "-id").distinct(
+                "street_name",
+                "block",
+                "flat_type",
+                "flat_model",
+                "storey_range",
+                "floor_area_sqm")
     else:
         return Response({"message": "Error 400. Invalid URL request."},status=status.HTTP_400_BAD_REQUEST)
         
