@@ -22,7 +22,8 @@ urlpatterns = [
     # path('admin/', admin.site.urls),
     path('__debug__/', include(debug_toolbar.urls)),
     # path('data/', include('datacollector.urls')),
-    path('update/', include('dataupdater.urls')),
-    path('', include('api.urls'))
+    path('resaletransactions/', include('resaletransactions.urls')),
+    path('', include('api.urls')),
+    path('postalcodes/', include('postalcodes.urls')),
     
 ]

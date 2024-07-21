@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from django.core import serializers
 from django.http import HttpResponse
-from .models import ResaleTransaction
+from resaletransactions.models import ResaleTransaction
 
 
 # def calculate():

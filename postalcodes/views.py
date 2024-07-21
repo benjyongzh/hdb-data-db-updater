@@ -1,10 +1,9 @@
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
-from datacollector.models import ResaleTransaction
+from resaletransactions.models import ResaleTransaction
 from .models import PostalCodeAddress
 from .util.get_postal_code_from_address import get_postal_code_from_address
-from api.serializers import PostalCodeAddressSerializer
 
 @api_view(['GET'])
 def refresh_postal_code_data(request):

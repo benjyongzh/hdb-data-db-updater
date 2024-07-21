@@ -1,6 +1,6 @@
 from rest_framework import serializers
-from datacollector.models import ResaleTransaction
-from postalcodedata.models import PostalCodeAddress
+from resaletransactions.models import ResaleTransaction
+from postalcodes.models import PostalCodeAddress
 
 class ResaleTransactionSerializer(serializers.ModelSerializer):
     class Meta:
