@@ -23,7 +23,7 @@ urlpatterns = [
     path('__debug__/', include(debug_toolbar.urls)),
     # path('data/', include('datacollector.urls')),
     path('resaletransactions/', include('resaletransactions.urls')),
-    path('', include('api.urls')),
+    path('api/', include('api.urls')),
     path('postalcodes/', include('postalcodes.urls')),
     
 ]
