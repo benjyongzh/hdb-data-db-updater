@@ -4,9 +4,10 @@ from rest_framework.decorators import api_view
 from resaletransactions.models import ResaleTransaction
 from .models import PostalCodeAddress
 from .util.get_postal_code_from_address import get_postal_code_from_address
+from api.serializers import PostalCodeAddressSerializer
 
 @api_view(['GET'])
-def refresh_postal_code_data(request):
+def update_postal_code_data(request):
     try:
         all_addresses = ResaleTransaction.objects.distinct("block", "street_name").values("block", "street_name")
         recorded_addresses = PostalCodeAddress.objects.all().values("block", "street_name")
@@ -15,7 +16,7 @@ def refresh_postal_code_data(request):
         new_addresses = all_addresses.difference(recorded_addresses).order_by("street_name")
 
         # for each row missing in table, call openmaps api to get postal code of address.
-        new_postal_code_objects = []
+        new_postal_code_objects:list[PostalCodeAddress] = []
         for address_info in new_addresses:
             address_string = f"{address_info['block']} {address_info['street_name']}"
             postal_code:str = get_postal_code_from_address(address_string)
@@ -28,11 +29,10 @@ def refresh_postal_code_data(request):
 
         # add address and postal code as new row to postalcodeaddress table.
         final_new_addresses = PostalCodeAddress.objects.bulk_create(new_postal_code_objects)
-
         #! for each row extra in table, delete row.
-
         # respond with new addresses
-        data = {"redirect_url": "/api/postal-codes/", "new_addresses": final_new_addresses}
+        serializer = PostalCodeAddressSerializer(final_new_addresses, many=True)
+        data = {"redirect_url": "/api/postal-codes/", "new_addresses": serializer.data}
         return Response(data, status= status.HTTP_201_CREATED if len(final_new_addresses) > 0 else status.HTTP_200_OK)
     except:
         data = {"error-message": "Invalid configurations"}
