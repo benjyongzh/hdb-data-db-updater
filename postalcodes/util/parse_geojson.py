@@ -7,11 +7,14 @@ def get_postal_code_from_feature(feature) -> str:
     # geometry = feature['geometry']
     return postal_code
 
+
 def get_postal_code_from_description(description) -> str:
     table_data = [[cell.text for cell in row("td")]
         for row in BeautifulSoup(description, features="html.parser")("tr")]
     return table_data[4][0]
 
+def get_geometry_from_feature(feature):
+    return feature['geometry']
 
 filepath = "/home/benjyongzh/hdb-info/building-polygons/HDBExistingBuilding-sample-unformatted.geojson"
 with open(filepath) as f:
