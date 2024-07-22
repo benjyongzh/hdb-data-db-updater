@@ -1,11 +1,16 @@
 import geojson
+from bs4 import BeautifulSoup
 
 def get_postal_code_from_feature(feature) -> str:
-    # feature = collection['features'][0]
     description = feature['properties']['Description']
-    # postal_code = feature['properties']['geometry']
-    geometry = feature['geometry']
-    return description
+    postal_code:str = get_postal_code_from_description(description)
+    # geometry = feature['geometry']
+    return postal_code
+
+def get_postal_code_from_description(description) -> str:
+    table_data = [[cell.text for cell in row("td")]
+        for row in BeautifulSoup(description, features="html.parser")("tr")]
+    return table_data[4][0]
 
 
 filepath = "/home/benjyongzh/hdb-info/building-polygons/HDBExistingBuilding-sample-unformatted.geojson"
