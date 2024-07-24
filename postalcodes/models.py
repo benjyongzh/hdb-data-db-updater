@@ -16,3 +16,17 @@ class PostalCodeAddress(models.Model):
     def address(self):
         return f"{self.block} {self.street_name}"
 
+class BuildingGeometryPolygon(models.Model):
+    block = models.CharField(max_length=4)
+    postal_code = models.CharField(max_length=6)
+    building_polygon = models.PolygonField()
+
+    def __str__(self):
+        return f"Building polygon of {self.postal_code}"
+    
+    def get_keys():
+        return "postal_code, building_polygon"
+    
+    def polygon(self):
+        return self.building_polygon
+
