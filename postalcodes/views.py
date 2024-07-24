@@ -4,7 +4,11 @@ from rest_framework.decorators import api_view
 from resaletransactions.models import ResaleTransaction
 from .models import PostalCodeAddress
 from .util.get_postal_code_from_address import get_postal_code_from_address
+from .util.parse_geojson import import_new_geojson_features_into_table
 from api.serializers import PostalCodeAddressSerializer
+from dotenv import dotenv_values
+
+config = dotenv_values(".env")
 
 @api_view(['GET'])
 def update_postal_code_data(request):
@@ -37,3 +41,17 @@ def update_postal_code_data(request):
     except:
         data = {"error-message": "Invalid configurations"}
         return Response(data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+@api_view(['GET'])
+def update_new_building_polygons(request):
+    if config["ENV"] == "DEV":
+        import_new_geojson_features_into_table("postalcodes_buildinggeometrypolygon", config["BUILDING_POLYGON_GEOJSON_FOLDER_PATH_DEV"])
+    elif config["ENV"] == "PROD":
+        import_new_geojson_features_into_table("postalcodes_buildinggeometrypolygon", config["BUILDING_POLYGON_GEOJSON_FOLDER_PATH_PROD"])
+    else:
+        # respond with not ok. wrong config
+        data = {"error-message": "Invalid configurations"}
+        return Response(data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    # respond with ok
+    data = {"redirect_url": "/api/postal-codes/"}
+    return Response(data, status=status.HTTP_200_OK)
