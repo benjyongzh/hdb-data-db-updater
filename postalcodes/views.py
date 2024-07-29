@@ -45,13 +45,14 @@ def update_postal_code_data(request):
 @api_view(['GET'])
 def update_new_building_polygons(request):
     if config["ENV"] == "DEV":
-        import_new_geojson_features_into_table("postalcodes_buildinggeometrypolygon", config["BUILDING_POLYGON_GEOJSON_FOLDER_PATH_DEV"])
+        new_geojson = import_new_geojson_features_into_table("postalcodes_buildinggeometrypolygon", config["BUILDING_POLYGON_GEOJSON_FOLDER_PATH_DEV"])
     elif config["ENV"] == "PROD":
-        import_new_geojson_features_into_table("postalcodes_buildinggeometrypolygon", config["BUILDING_POLYGON_GEOJSON_FOLDER_PATH_PROD"])
+        new_geojson = import_new_geojson_features_into_table("postalcodes_buildinggeometrypolygon", config["BUILDING_POLYGON_GEOJSON_FOLDER_PATH_PROD"])
     else:
         # respond with not ok. wrong config
         data = {"error-message": "Invalid configurations"}
         return Response(data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     # respond with ok
-    data = {"redirect_url": "/api/postal-codes/"}
-    return Response(data, status=status.HTTP_200_OK)
+    serializer = PostalCodeAddressSerializer(new_geojson, many=True)
+    data = {"redirect_url": "/api/postal-codes/", "new_polygons": serializer.data}
+    return Response(data, status= status.HTTP_201_CREATED if len(new_geojson) > 0 else status.HTTP_200_OK)

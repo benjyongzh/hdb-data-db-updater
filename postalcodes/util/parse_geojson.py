@@ -36,6 +36,8 @@ def import_new_geojson_features_into_table(table_name, geojson_folderpath):
 
         # for each feature, get postalcode
         features = gj['features']
+
+        new_geojsons = []
         for feature in features:
             block_number = get_block_number_from_feature(feature)
             postal_code = get_postal_code_from_feature(feature)
@@ -48,10 +50,20 @@ def import_new_geojson_features_into_table(table_name, geojson_folderpath):
 
                 # remove z axis from geometry, use first index of coordinates only
                 geom_coordinates = remove_z_from_geom_coordinates(geom['coordinates'])
+                final_geom = {"type": geom['type'], "coordinates": geom_coordinates}
 
-                # create new row with postalcode + geometry,
-
+                # create new row with block + postalcode + geometry,
                 # use SELECT ST_GeomFromGeoJSON(<geometry>),ST_AsText,ST_AsGeoJSON
+                new_polygon:BuildingGeometryPolygon = BuildingGeometryPolygon(
+                    block = block_number,
+                    postal_code = postal_code,
+                    building_polygon = final_geom)
+                
+                final_new_polygon = BuildingGeometryPolygon.objects.create(new_polygon)
+                new_geojsons.append(final_new_polygon)
+
+        return new_geojsons
+
 
 def remove_z_from_geom_coordinates(geometry):
     arr = geometry['coordinates'][0]
