@@ -2,6 +2,7 @@ import geojson
 from bs4 import BeautifulSoup
 from common.util.get_latest_file_in_folder import get_latest_file_in_folder
 from postalcodes.models import BuildingGeometryPolygon
+from django.contrib.gis.geos import Polygon
 
 def get_postal_code_from_feature(feature) -> str:
     description = feature['properties']['Description']
@@ -41,40 +42,41 @@ def import_new_geojson_features_into_table(table_name, geojson_folderpath):
         for feature in features:
             block_number = get_block_number_from_feature(feature)
             postal_code = get_postal_code_from_feature(feature)
-            db_row = BuildingGeometryPolygon.objects.get(block__iexact=block_number, postal_code__isexact=postal_code)
 
-            # if postalcode doesnt exist in db:
+            db_row = BuildingGeometryPolygon.objects.filter(block__exact=block_number, postal_code__exact=postal_code).first()
+            
             if db_row == None:
+                # if postalcode doesnt exist in db
+
                 # get geometry object,
                 geom = get_geometry_from_feature(feature)
 
                 # remove z axis from geometry, use first index of coordinates only
                 geom_coordinates = remove_z_from_geom_coordinates(geom['coordinates'])
-                final_geom = {"type": geom['type'], "coordinates": geom_coordinates}
+                final_geom = Polygon(geom_coordinates)
 
                 # create new row with block + postalcode + geometry,
-                # use SELECT ST_GeomFromGeoJSON(<geometry>),ST_AsText,ST_AsGeoJSON
-                new_polygon:BuildingGeometryPolygon = BuildingGeometryPolygon(
-                    block = block_number,
-                    postal_code = postal_code,
-                    building_polygon = final_geom)
-                
-                final_new_polygon = BuildingGeometryPolygon.objects.create(new_polygon)
+                # use SELECT ST_GeomFromGeoJSON to convert from geojson to postGIS geom,
+                # ST_AsText,
+                # ST_AsGeoJSON to convert from postGIS geom to geojson
+                new_polygon = {
+                    "block": block_number,
+                    "postal_code": postal_code,
+                    "building_polygon": final_geom
+                }
+                final_new_polygon = BuildingGeometryPolygon.objects.create(**new_polygon)
                 new_geojsons.append(final_new_polygon)
 
         return new_geojsons
 
 
-def remove_z_from_geom_coordinates(geometry):
-    arr = geometry['coordinates'][0]
+def remove_z_from_geom_coordinates(coords):
+    arr = coords[0]
     arr2 = []
     for point in arr:
         point = [point[0], point[1]]
         arr2.append(point)
     return arr2
-
-def add_new_row_into_polygon_table(feature):
-    pass
 
 '''
 geom = {
