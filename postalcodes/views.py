@@ -5,7 +5,7 @@ from resaletransactions.models import ResaleTransaction
 from .models import PostalCodeAddress
 from .util.get_postal_code_from_address import get_postal_code_from_address
 from .util.parse_geojson import import_new_geojson_features_into_table
-from api.serializers import PostalCodeAddressSerializer
+from api.serializers import PostalCodeAddressSerializer,BuildingGeometryPolygonSerializer
 from dotenv import dotenv_values
 
 config = dotenv_values(".env")
@@ -53,6 +53,6 @@ def update_new_building_polygons(request):
         data = {"error-message": "Invalid configurations"}
         return Response(data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     # respond with ok
-    serializer = PostalCodeAddressSerializer(new_geojson, many=True)
+    serializer = BuildingGeometryPolygonSerializer(new_geojson, many=True)
     data = {"redirect_url": "/api/postal-codes/", "new_polygons": serializer.data}
     return Response(data, status= status.HTTP_201_CREATED if len(new_geojson) > 0 else status.HTTP_200_OK)
