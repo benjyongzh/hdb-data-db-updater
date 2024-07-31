@@ -11,9 +11,6 @@ import os
 
 from django.core.asgi import get_asgi_application
 
-# from dotenv import dotenv_values
-# config = dotenv_values(".env")
-
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.django.production')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.django.local')
 
 application = get_asgi_application()
