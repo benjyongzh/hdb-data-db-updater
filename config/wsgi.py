@@ -11,6 +11,9 @@ import os
 
 from django.core.wsgi import get_wsgi_application
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'hdbdata.settings')
+# from dotenv import dotenv_values
+# config = dotenv_values(".env")
+
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.django.production')
 
 application = get_wsgi_application()

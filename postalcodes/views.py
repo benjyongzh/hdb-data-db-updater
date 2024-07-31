@@ -6,9 +6,8 @@ from .models import PostalCodeAddress
 from .util.get_postal_code_from_address import get_postal_code_from_address
 from .util.parse_geojson import import_new_geojson_features_into_table
 from api.serializers import PostalCodeAddressSerializer,BuildingGeometryPolygonSerializer
-from dotenv import dotenv_values
 
-config = dotenv_values(".env")
+from config.env import env
 
 @api_view(['GET'])
 def update_postal_code_data(request):
@@ -44,11 +43,9 @@ def update_postal_code_data(request):
     
 @api_view(['GET'])
 def update_new_building_polygons(request):
-    if config["ENV"] == "DEV":
-        new_geojson = import_new_geojson_features_into_table("postalcodes_buildinggeometrypolygon", config["BUILDING_POLYGON_GEOJSON_FOLDER_PATH_DEV"])
-    elif config["ENV"] == "PROD":
-        new_geojson = import_new_geojson_features_into_table("postalcodes_buildinggeometrypolygon", config["BUILDING_POLYGON_GEOJSON_FOLDER_PATH_PROD"])
-    else:
+    try:
+        new_geojson = import_new_geojson_features_into_table("postalcodes_buildinggeometrypolygon", env("BUILDING_POLYGON_GEOJSON_FOLDER_PATH"))
+    except:
         # respond with not ok. wrong config
         data = {"error-message": "Invalid configurations"}
         return Response(data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

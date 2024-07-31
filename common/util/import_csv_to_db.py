@@ -3,10 +3,10 @@ import psycopg2
 from dotenv import dotenv_values
 from .get_latest_file_in_folder import get_latest_file_in_folder
 
-config = dotenv_values(".env")
+from config.env import env
 
 def import_from_csv_to_db(table_name, folderpath):
-    conn = psycopg2.connect(host=config["DB_HOST"],dbname = config["DB_NAME"], user=config["DB_USER"], password=config["DB_PASSWORD"], port=config["DB_PORT"])
+    conn = psycopg2.connect(host=env("DB_HOST"),dbname = env("DB_NAME"), user=env("DB_USER"), password=env("DB_PASSWORD"), port=env("DB_PORT"))
 
     cur = conn.cursor()
     # create temperary table with schema of real table

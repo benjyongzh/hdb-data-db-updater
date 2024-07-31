@@ -3,10 +3,13 @@
 import os
 import sys
 
+# from dotenv import dotenv_values
+# config = dotenv_values(".env")
 
 def main():
     """Run administrative tasks."""
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'hdbdata.settings')
+    # os.environ.setdefault('DJANGO_SETTINGS_MODULE', config['DJANGO_SETTINGS_MODULE'])
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.django.production')
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:

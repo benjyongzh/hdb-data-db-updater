@@ -4,16 +4,14 @@ from rest_framework.decorators import api_view
 from dotenv import dotenv_values
 from common.util.import_csv_to_db import import_from_csv_to_db
 
-config = dotenv_values(".env")
+from config.env import env
 
 # Create your views here.
 @api_view(['GET'])
 def update_new_transactions(request):
-    if config["ENV"] == "DEV":
-        import_from_csv_to_db("resaletransactions_resaletransaction", config["RESALE_PRICE_CSV_FOLDER_PATH_DEV"])
-    elif config["ENV"] == "PROD":
-        import_from_csv_to_db("resaletransactions_resaletransaction", config["RESALE_PRICE_CSV_FOLDER_PATH_PROD"])
-    else:
+    try:
+        import_from_csv_to_db("resaletransactions_resaletransaction", env("RESALE_PRICE_CSV_FOLDER_PATH"))
+    except:
         # respond with not ok. wrong config
         data = {"error-message": "Invalid configurations"}
         return Response(data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
