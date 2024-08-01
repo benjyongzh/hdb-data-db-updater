@@ -1,8 +1,6 @@
 
 import psycopg2
-from dotenv import dotenv_values
-from .get_latest_file_in_folder import get_latest_file_in_folder
-
+from common.util.get_latest_file_in_folder import get_latest_file_in_folder
 from config.env import env
 
 def import_from_csv_to_db(table_name, folderpath):
