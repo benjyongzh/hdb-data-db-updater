@@ -1,8 +1,7 @@
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
-from dotenv import dotenv_values
-from common.util.import_csv_to_db import import_from_csv_to_db
+from .util.import_csv_to_db import import_from_csv_to_db
 
 from config.env import env
 
@@ -18,8 +17,3 @@ def update_new_transactions(request):
     # respond with ok
     data = {"redirect_url": "/api/resale-transactions/"}
     return Response(data, status=status.HTTP_200_OK)
-
-
-#! figure out how to merge new data with building polygons data to create a final table that merges resale prices and building polygons
-def update_building_polygons(request):
-    return Response("update building polygons here", status=status.HTTP_200_OK)
