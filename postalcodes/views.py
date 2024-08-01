@@ -28,7 +28,7 @@ def update_postal_code_data(request):
                 street_name = address_info['street_name'],
                 postal_code = postal_code)
             new_postal_code_objects.append(address_with_postal_code)
-            print(address_with_postal_code)
+            print("New postal code to register", len(new_postal_code_objects), "-", address_with_postal_code)
 
         # add address and postal code as new row to postalcodeaddress table.
         final_new_addresses = PostalCodeAddress.objects.bulk_create(new_postal_code_objects)
