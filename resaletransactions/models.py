@@ -8,11 +8,11 @@ class ResaleTransaction(models.Model):
     block = models.CharField(max_length=4)
     street_name = models.CharField(max_length=100)
     storey_range = models.CharField(max_length=10)
-    floor_area_sqm = models.PositiveSmallIntegerField()
+    floor_area_sqm = models.DecimalField(max_digits=7, decimal_places=2)
     flat_model = models.CharField( max_length=50)
     lease_commence_date = models.CharField(max_length=4)
     remaining_lease = models.CharField(max_length=100)
-    resale_price = models.IntegerField()
+    resale_price = models.DecimalField(max_digits=12, decimal_places=2)
 
     def __str__(self):
         return f"{self.town} {self.block} {self.month} {self.resale_price}"
