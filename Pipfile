@@ -6,6 +6,14 @@ name = "pypi"
 [packages]
 django = "*"
 django-debug-toolbar = "*"
+psycopg2-binary = "*"
+pandas = "*"
+bs4 = "*"
+django-environ = "*"
+djangorestframework = "*"
+geojson = "*"
+requests = "*"
+ratelimit = "*"
 
 [dev-packages]
 
