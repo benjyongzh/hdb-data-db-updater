@@ -5,17 +5,17 @@ from config.env import env
 import pandas as pd
 from sqlalchemy import create_engine
 
-def update_table_with_csv(table_name,folderpath):
-    try:
-        filepath = get_latest_file_in_folder(folderpath, "with-id", "csv")
-    except filepath ==  None:
-        return
+def update_table_with_csv(table_name,csv_file):
+    # try:
+    #     filepath = get_latest_file_in_folder(folderpath, "with-id", "csv")
+    # except filepath ==  None:
+    #     return
 
     # pandas dataframe of file
-    dataframe = pd.read_csv(filepath)
+    dataframe = pd.read_csv(csv_file)
 
     # get db connection
-    db_connection_url = f"postgresql://{env("DB_USER")}:{env("DB_PASSWORD")}@{env("DB_HOST")}:{env("DB_PORT")}/{env("DB_NAME")}"
+    db_connection_url = f"postgresql://{env('DB_USER')}:{env('DB_PASSWORD')}@{env('DB_HOST')}:{env('DB_PORT')}/{env('DB_NAME')}"
     engine = create_engine(db_connection_url)
 
     # use csv to update entire table
