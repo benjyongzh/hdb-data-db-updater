@@ -19,7 +19,7 @@ def update_table_with_csv(table_name,csv_file):
     engine = create_engine(db_connection_url)
 
     # use csv to update entire table
-    dataframe.to_sql(table_name, engine, if_exists='replace', index=False, chunksize=10000)
+    dataframe.to_sql(table_name, engine, if_exists='replace', index=False, chunksize=50000)
 
 def import_from_csv_to_db(table_name, folderpath):
     conn = psycopg2.connect(host=env("DB_HOST"),dbname = env("DB_NAME"), user=env("DB_USER"), password=env("DB_PASSWORD"), port=env("DB_PORT"))
