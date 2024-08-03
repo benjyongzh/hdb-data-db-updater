@@ -15,6 +15,7 @@ geojson = "*"
 requests = "*"
 ratelimit = "*"
 sqlalchemy = "*"
+pandas-geojson = "*"
 
 [dev-packages]
 

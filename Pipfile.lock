@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "f707baf49d9eed3459f0e37ee9aeafe065de16e1e87fca4f0a79b7f18b8d775c"
+            "sha256": "874ec8b07a8d366fef0016462c43009417562f0754aa700f62c5e1e381e79fbf"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -347,6 +347,14 @@
             "index": "pypi",
             "markers": "python_version >= '3.9'",
             "version": "==2.2.2"
+        },
+        "pandas-geojson": {
+            "hashes": [
+                "sha256:a75ca5e7e7fd7b495a7136c44b901759768f6031c097e9ecf1f68e5eb4011066",
+                "sha256:e13c48daa7308c284afb0b0f4c77d6e23aa05df3879fa864203f2083f74ced9e"
+            ],
+            "index": "pypi",
+            "version": "==2.2.1"
         },
         "psycopg2-binary": {
             "hashes": [

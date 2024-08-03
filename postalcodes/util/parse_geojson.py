@@ -1,8 +1,8 @@
-import geojson
 from bs4 import BeautifulSoup
 from postalcodes.models import BuildingGeometryPolygon
 from django.contrib.gis.geos import Polygon
-import pandas as pd
+import pandas_geojson as pdg
+geojson = pdg.read_geojson('datasets/National_Obesity_By_State.geojson')
 
 def get_postal_code_from_feature(feature) -> str:
     description = feature['properties']['Description']
@@ -28,41 +28,40 @@ def get_geometry_from_feature(feature):
     return feature['geometry']
 
 def import_new_geojson_features_into_table(django_object, geojson_file):
+    gj = pdg.read_geojson(geojson_file)
+    new_geojsons = []
 
     # iterate through every feature
-    with open(geojson_file) as f:
-        gj = geojson.load(f)
-        features = gj['features']
-        new_geojsons = []
+    features = gj['features']
+
+    for feature in features:
+        block_number = get_block_number_from_feature(feature)
+        postal_code = get_postal_code_from_feature(feature)
+
+        db_row = django_object.objects.filter(block__exact=block_number, postal_code__exact=postal_code).first()
         
-        for feature in features:
-            block_number = get_block_number_from_feature(feature)
-            postal_code = get_postal_code_from_feature(feature)
+        # if postalcode doesnt exist in db
+        if db_row == None:
+            # get geometry object,
+            geom = get_geometry_from_feature(feature)
 
-            db_row = django_object.objects.filter(block__exact=block_number, postal_code__exact=postal_code).first()
-            
-            # if postalcode doesnt exist in db
-            if db_row == None:
-                # get geometry object,
-                geom = get_geometry_from_feature(feature)
+            # remove z axis from geometry, use first index of coordinates only
+            geom_coordinates = remove_z_from_geom_coordinates(geom['coordinates'])
+            final_geom = Polygon(geom_coordinates)
 
-                # remove z axis from geometry, use first index of coordinates only
-                geom_coordinates = remove_z_from_geom_coordinates(geom['coordinates'])
-                final_geom = Polygon(geom_coordinates)
+            # create new row with block + postalcode + geometry,
+            # use SELECT ST_GeomFromGeoJSON to convert from geojson to postGIS geom,
+            # ST_AsText,
+            # ST_AsGeoJSON to convert from postGIS geom to geojson
+            new_polygon = {
+                "block": block_number,
+                "postal_code": postal_code,
+                "building_polygon": final_geom
+            }
+            final_new_polygon = BuildingGeometryPolygon.objects.create(**new_polygon)
+            new_geojsons.append(final_new_polygon)
 
-                # create new row with block + postalcode + geometry,
-                # use SELECT ST_GeomFromGeoJSON to convert from geojson to postGIS geom,
-                # ST_AsText,
-                # ST_AsGeoJSON to convert from postGIS geom to geojson
-                new_polygon = {
-                    "block": block_number,
-                    "postal_code": postal_code,
-                    "building_polygon": final_geom
-                }
-                final_new_polygon = BuildingGeometryPolygon.objects.create(**new_polygon)
-                new_geojsons.append(final_new_polygon)
-
-        return new_geojsons
+    return new_geojsons
 
 
 def remove_z_from_geom_coordinates(coords):
