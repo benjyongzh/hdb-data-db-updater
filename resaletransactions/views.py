@@ -13,15 +13,25 @@ class UploadResaleTransactions(APIView):
         return render(request, 'csv_uploader.html')
 
     def post(self, request):
-        from pathlib import Path
         if request.data['resale_csv_file']:
             csv_file = request.data['resale_csv_file']
             if not csv_file.name.endswith('.csv'):
                 return Response({'error': 'File is not CSV.'}, status=status.HTTP_406_NOT_ACCEPTABLE)
 
-            update_table_with_csv("resaletransactions_resaletransaction", csv_file)
-            data = {"redirect_url": "/api/resale-transactions/"}
-            return Response(data, status=status.HTTP_200_OK)
+            # update resale transactions table
+            try:
+                update_table_with_csv("resaletransactions_resaletransaction", csv_file)
+
+                # update postalcodes table
+
+                # response
+                data = {"redirect_url": "/api/resale-transactions/"}
+                return Response(data, status=status.HTTP_200_OK)
+
+            except:
+                return Response({'error': 'Server error.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 
 '''
 @api_view(['GET'])
