@@ -6,8 +6,26 @@ from .models import PostalCodeAddress
 from .util.get_postal_code_from_address import get_postal_code_from_address
 from .util.parse_geojson import import_new_geojson_features_into_table
 from api.serializers import PostalCodeAddressSerializer,BuildingGeometryPolygonSerializer
+from rest_framework.views import APIView
+from django.shortcuts import render
 
 from config.env import env
+
+class UploadGeojson(APIView):
+
+    def get(self, request):
+        return render(request, 'geojson_uploader.html')
+
+    def post(self, request):
+        from pathlib import Path
+        if request.data['geojson_file']:
+            geojson_file = request.data['geojson_file']
+            if not geojson_file.name.endswith('.geojson'):
+                return Response({'error': 'File is not GeoJSON.'}, status=status.HTTP_406_NOT_ACCEPTABLE)
+
+            # update_table_with_csv("resaletransactions_resaletransaction", geojson_file)
+            # data = {"redirect_url": "/api/resale-transactions/"}
+            return Response("hello", status=status.HTTP_200_OK)
 
 @api_view(['GET'])
 def update_postal_code_data(request):
