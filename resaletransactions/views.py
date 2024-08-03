@@ -23,7 +23,7 @@ class UploadResaleTransactions(APIView):
             data = {"redirect_url": "/api/resale-transactions/"}
             return Response(data, status=status.HTTP_200_OK)
 
-# Create your views here.
+'''
 @api_view(['GET'])
 def update_new_transactions(request):
     csv_file = request.FILES['csv']
@@ -36,3 +36,4 @@ def update_new_transactions(request):
     # respond with ok
     data = {"redirect_url": "/api/resale-transactions/"}
     return Response(data, status=status.HTTP_200_OK)
+'''
