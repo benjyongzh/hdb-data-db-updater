@@ -1,8 +1,8 @@
 import geojson
 from bs4 import BeautifulSoup
-from common.util.get_latest_file_in_folder import get_latest_file_in_folder
 from postalcodes.models import BuildingGeometryPolygon
 from django.contrib.gis.geos import Polygon
+import pandas as pd
 
 def get_postal_code_from_feature(feature) -> str:
     description = feature['properties']['Description']
@@ -27,27 +27,22 @@ def get_block_number_from_description(description) -> str:
 def get_geometry_from_feature(feature):
     return feature['geometry']
 
-def import_new_geojson_features_into_table(table_name, geojson_folderpath):
-    # get file
-    geojson_file = get_latest_file_in_folder(geojson_folderpath, extension="geojson")
+def import_new_geojson_features_into_table(django_object, geojson_file):
 
     # iterate through every feature
     with open(geojson_file) as f:
         gj = geojson.load(f)
-
-        # for each feature, get postalcode
         features = gj['features']
-
         new_geojsons = []
+        
         for feature in features:
             block_number = get_block_number_from_feature(feature)
             postal_code = get_postal_code_from_feature(feature)
 
-            db_row = BuildingGeometryPolygon.objects.filter(block__exact=block_number, postal_code__exact=postal_code).first()
+            db_row = django_object.objects.filter(block__exact=block_number, postal_code__exact=postal_code).first()
             
+            # if postalcode doesnt exist in db
             if db_row == None:
-                # if postalcode doesnt exist in db
-
                 # get geometry object,
                 geom = get_geometry_from_feature(feature)
 
