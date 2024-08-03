@@ -2,11 +2,30 @@
 import psycopg2
 from common.util.get_latest_file_in_folder import get_latest_file_in_folder
 from config.env import env
+import pandas as pd
+from sqlalchemy import create_engine
+
+def update_table_with_csv(table_name,folderpath):
+    try:
+        filepath = get_latest_file_in_folder(folderpath, "with-id", "csv")
+    except filepath ==  None:
+        return
+
+    # pandas dataframe of file
+    dataframe = pd.read_csv(filepath)
+
+    # get db connection
+    db_connection_url = f"postgresql://{env("DB_USER")}:{env("DB_PASSWORD")}@{env("DB_HOST")}:{env("DB_PORT")}/{env("DB_NAME")}"
+    engine = create_engine(db_connection_url)
+
+    # use csv to update entire table
+    dataframe.to_sql(table_name, engine, if_exists='replace', index=False, chunksize=10000)
 
 def import_from_csv_to_db(table_name, folderpath):
     conn = psycopg2.connect(host=env("DB_HOST"),dbname = env("DB_NAME"), user=env("DB_USER"), password=env("DB_PASSWORD"), port=env("DB_PORT"))
 
     cur = conn.cursor()
+
     # create temperary table with schema of real table
     cur.execute(f"""--sql 
                 CREATE TEMPORARY TABLE tmp_table AS SELECT * FROM {table_name} WITH NO DATA;
@@ -34,9 +53,9 @@ def import_from_csv_to_db(table_name, folderpath):
                 ON CONFLICT DO NOTHING;
                 """)
 
-    cur.execute(f"SELECT * FROM {table_name};")
-    for row in cur.fetchall():
-        print(row)
+    # cur.execute(f"SELECT * FROM {table_name};")
+    # for row in cur.fetchall():
+    #     print(row)
 
     # delete temp table
     cur.execute("""--sql

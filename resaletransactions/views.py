@@ -1,7 +1,7 @@
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
-from .util.import_csv_to_db import import_from_csv_to_db
+from .util.csv_operations import update_table_with_csv
 
 from config.env import env
 
@@ -9,7 +9,7 @@ from config.env import env
 @api_view(['GET'])
 def update_new_transactions(request):
     try:
-        import_from_csv_to_db("resaletransactions_resaletransaction", env("RESALE_PRICE_CSV_FOLDER_PATH"))
+        update_table_with_csv("resaletransactions_resaletransaction", env("RESALE_PRICE_CSV_FOLDER_PATH"))
     except:
         # respond with not ok. wrong config
         data = {"error-message": "Invalid configurations"}
