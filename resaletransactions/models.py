@@ -14,6 +14,7 @@ class ResaleTransaction(models.Model):
     remaining_lease = models.CharField(max_length=100)
     resale_price = models.DecimalField(max_digits=12, decimal_places=2)
 
+
     def __str__(self):
         return f"{self.town} {self.block} {self.month} {self.resale_price}"
     
@@ -26,3 +27,5 @@ class ResaleTransaction(models.Model):
     def address(self):
         return f"{self.block} {self.street_name}"
 
+    class Meta:
+        ordering:['month', '-town']
