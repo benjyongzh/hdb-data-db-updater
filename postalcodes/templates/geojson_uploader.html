@@ -19,13 +19,13 @@
       enctype="multipart/form-data"
     >
       {% csrf_token %}
-      <label for="images" class="drop-container">
+      <label for="geojson_file" class="drop-container">
         <input
           type="file"
           {%
           comment
           %}
-          id="customFile"
+          id="geojson_file"
           {%
           endcomment
           %}
