@@ -27,5 +27,3 @@ class ResaleTransaction(models.Model):
     def address(self):
         return f"{self.block} {self.street_name}"
 
-    class Meta:
-        ordering:['month', '-town']

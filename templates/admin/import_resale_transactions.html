@@ -1,0 +1,30 @@
+{% extends "admin/base.html" %} {% block content %}
+
+<form
+  id="resale-csv-uploader"
+  action="."
+  method="post"
+  enctype="multipart/form-data"
+>
+  {% comment %} {{ form.as_p }} {% endcomment %} {% csrf_token %}
+  <label for="resale_csv_file">
+    <input
+      type="file"
+      {%
+      comment
+      %}
+      id="resale_csv_file"
+      {%
+      endcomment
+      %}
+      name="resale_csv_file"
+      required
+      accept=".csv"
+      size="255"
+    />
+  </label>
+  <button type="submit">Upload File</button>
+  <button type="button" onclick="javascript:history.back();">Cancel</button>
+</form>
+
+{% endblock %}
