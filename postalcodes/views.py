@@ -18,7 +18,6 @@ class UploadGeojson(APIView):
         return render(request, 'geojson_uploader.html')
 
     def post(self, request):
-        from pathlib import Path
         if request.data['geojson_file']:
             geojson_file = request.data['geojson_file']
             if not geojson_file.name.endswith('.geojson'):
@@ -26,14 +25,14 @@ class UploadGeojson(APIView):
 
             try:
                 # update postalcodes table
-                import_new_geojson_features_into_table(BuildingGeometryPolygon, geojson_file)
-
-                # response
-                # data = {"redirect_url": "/api/resale-transactions/"}
-                return Response("hello", status=status.HTTP_200_OK)
-
+                new_geojson = import_new_geojson_features_into_table(BuildingGeometryPolygon, geojson_file)
             except:
                 return Response({'error': 'Server error.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            # response
+            serializer = BuildingGeometryPolygonSerializer(new_geojson, many=True)
+            data = {"redirect_url": "/api/postal-codes/", "new_polygons": serializer.data}
+            return Response(data, status= status.HTTP_201_CREATED if len(new_geojson) > 0 else status.HTTP_200_OK)
 
 @api_view(['GET'])
 def update_postal_code_data(request):
@@ -66,7 +65,8 @@ def update_postal_code_data(request):
     except:
         data = {"error-message": "Invalid configurations"}
         return Response(data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
+
+''' 
 @api_view(['GET'])
 def update_new_building_polygons(request):
     try:
@@ -79,3 +79,4 @@ def update_new_building_polygons(request):
     serializer = BuildingGeometryPolygonSerializer(new_geojson, many=True)
     data = {"redirect_url": "/api/postal-codes/", "new_polygons": serializer.data}
     return Response(data, status= status.HTTP_201_CREATED if len(new_geojson) > 0 else status.HTTP_200_OK)
+'''
