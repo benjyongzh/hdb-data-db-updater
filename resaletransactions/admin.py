@@ -1,13 +1,17 @@
 from django.contrib import admin
 from django.urls import path
-from django import forms
+from django.shortcuts import render
+from django.forms import Form, FileField
 from rest_framework.response import Response
 from rest_framework import status
-from django.http import HttpResponseRedirect, HttpResponse
+from django.http import JsonResponse, HttpResponse
 from resaletransactions.models import ResaleTransaction
-from django.shortcuts import render
 # from import_export.admin import ImportExportModelAdmin, ImportMixin
 from resaletransactions.util.csv_operations import update_table_with_csv
+from django.db import models
+
+class UploadForm(Form):
+    resale_csv_file = FileField()
 
 # Register your models here.
 @admin.register(ResaleTransaction)
@@ -22,7 +26,8 @@ class ResaleTransactionAdmin(admin.ModelAdmin):
 
     def upload_csv(self, request):
         if request.method == "POST":
-            if request.FILES['resale_csv_file']:
+            form = UploadForm(request.POST, request.FILES)
+            if form.is_valid() and request.FILES['resale_csv_file']:
                 csv_file = request.FILES['resale_csv_file']
                 if not csv_file.name.endswith('.csv'):
                     # return Response({'error': 'File is not CSV.'}, status=status.HTTP_406_NOT_ACCEPTABLE)
@@ -35,14 +40,17 @@ class ResaleTransactionAdmin(admin.ModelAdmin):
                     # update postalcodes table
 
                     # response
+                    
+                    # form.save()
                     data = {"redirect_url": "/api/resale-transactions/"}
-                    # return Response(data, status=status.HTTP_200_OK)
-                    return HttpResponse(data, status=status.HTTP_200_OK)
+                    return JsonResponse(data, status=status.HTTP_200_OK)
+                    # return HttpResponse(data, status=status.HTTP_200_OK)
 
                 except:
-                    # return Response({'error': 'Server error.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-                    return HttpResponse('Server error.', status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-        return render(request, "admin/import_resale_transactions.html")
+                    return JsonResponse({'error':'Server error.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                    # return HttpResponse('Server error.', status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        else:
+            form = UploadForm()
+            return render(request, "admin/import_resale_transactions.html", context={'form':form,'form_title': "Upload resale transactions .csv file."})
 
     
