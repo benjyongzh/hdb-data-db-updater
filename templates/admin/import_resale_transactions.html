@@ -23,48 +23,75 @@
   .not-visible {
     display: none;
   }
+  .gap-10 {
+    gap: 10px;
+  }
+
+  .max-width {
+    max-width: 650px;
+  }
 </style>
 
-<form
-  id="resale-csv-upload-form"
-  action="."
-  method="post"
-  enctype="multipart/form-data"
->
-  {% csrf_token %} {{form.as_p}} {% comment %}
-  <label for="resale_csv_file">
-    <input
-      type="file"
-      {%
-      comment
-      %}
-      id="resale_csv_file"
-      {%
-      endcomment
-      %}
-      name="resale_csv_file"
-      required
-      accept=".csv"
-      size="255"
-    />
-  </label>
-  {% endcomment %}
-  <button type="submit" class="btn btn-primary">Upload File</button>
-  <button
-    type="button"
-    class="btn btn-outline-secondary"
-    onclick="javascript:history.back();"
-  >
-    Cancel
-  </button>
-</form>
+<div class="container">
+  <div class="row justify-content-center">
+    <form
+      id="resale-csv-upload-form"
+      action="."
+      method="post"
+      enctype="multipart/form-data"
+      class="col d-flex flex-column align-items-center max-width"
+    >
+      {% csrf_token %} {{form.as_p}} {% comment %}
+      <label for="resale_csv_file">
+        <input
+          type="file"
+          {%
+          comment
+          %}
+          id="resale_csv_file"
+          {%
+          endcomment
+          %}
+          name="resale_csv_file"
+          required
+          accept=".csv"
+          size="255"
+        />
+      </label>
+      {% endcomment %}
+      <div class="d-flex align-items-center justify-content-center gap-10">
+        <button type="submit" class="btn btn-primary">Upload File</button>
+        <button
+          type="button"
+          class="btn btn-outline-secondary"
+          onclick="javascript:history.back();"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
+  </div>
 
-<div class="container not-visible progress" id="progress"></div>
+  <div class="mt-4 row justify-content-center">
+    <div class="col max-width">
+      <div class="progress not-visible" id="progress" style="height: 25px">
+        <div
+          class="progress-bar progress-bar-striped bg-info text-dark font-weight-bold"
+          role="progressbar"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          id="progressbar"
+        ></div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
   const uploadForm = document.getElementById("resale-csv-upload-form");
   const input_file = document.getElementById("id_resale_csv_file");
-  const progress_bar = document.getElementById("progress");
+  const progress_bar_bg = document.getElementById("progress");
+  const progress_bar = document.getElementById("progressbar");
 
   $("#resale-csv-upload-form").submit(function (e) {
     e.preventDefault();
@@ -73,7 +100,7 @@
     const media_data = input_file.files[0];
     if (media_data != null) {
       console.log(media_data);
-      progress_bar.classList.remove("not-visible");
+      progress_bar_bg.classList.remove("not-visible");
     }
 
     $.ajax({
@@ -81,7 +108,6 @@
       url: window.location.pathname,
       data: formData,
       dataType: "json",
-      //dataType: "text/csv",
       beforeSend: function () {},
       xhr: function () {
         const xhr = new window.XMLHttpRequest();
@@ -90,9 +116,13 @@
           if (e.lengthComputable) {
             const percentProgress = (e.loaded / e.total) * 100;
             console.log(percentProgress);
-            progress_bar.innerHTML = `<div class="progress-bar progress-bar-striped bg-success"
-              role="progressbar" style="width: ${percentProgress}%" aria-valuenow="${percentProgress}" aria-valuemin="0"
-              aria-valuemax="100"></div>`;
+            progress_bar.style.width = `${percentProgress}%`;
+            progress_bar.ariaValueNow = `${percentProgress}`;
+            progress_bar.textContent = `${Math.round(percentProgress)}%`;
+
+            //progress_bar_bg.innerHTML = `<div class="progress-bar progress-bar-striped bg-success"
+            //  role="progressbar" style="width: ${percentProgress}%" aria-valuenow="${percentProgress}" aria-valuemin="0"
+            //  aria-valuemax="100">${percentProgress}%</div>`;
           }
         });
         return xhr;
@@ -100,7 +130,7 @@
       success: function (response) {
         console.log(response);
         uploadForm.reset();
-        progress_bar.classList.add("not-visible");
+        progress_bar_bg.classList.add("not-visible");
       },
       error: function (err) {
         console.log(err);
