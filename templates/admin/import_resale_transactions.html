@@ -85,6 +85,18 @@
       </div>
     </div>
   </div>
+  <div class="mt-4 row justify-content-center">
+    <div class="col max-width d-flex flex-column align-items-center">
+      <p id="bottom-text" class="text-dark font-weight-bold m"></p>
+      <a
+        id="bottom-link"
+        href="/api/resale-transactions/"
+        class="btn btn-success not-visible"
+        role="button"
+        >View result</a
+      >
+    </div>
+  </div>
 </div>
 
 <script>
@@ -92,6 +104,8 @@
   const input_file = document.getElementById("id_resale_csv_file");
   const progress_bar_bg = document.getElementById("progress");
   const progress_bar = document.getElementById("progressbar");
+  const bottom_text = document.getElementById("bottom-text");
+  const bottom_link = document.getElementById("bottom-link");
 
   $("#resale-csv-upload-form").submit(function (e) {
     e.preventDefault();
@@ -101,6 +115,7 @@
     if (media_data != null) {
       console.log(media_data);
       progress_bar_bg.classList.remove("not-visible");
+      bottom_link.classList.add("not-visible");
     }
 
     $.ajax({
@@ -118,22 +133,28 @@
             console.log(percentProgress);
             progress_bar.style.width = `${percentProgress}%`;
             progress_bar.ariaValueNow = `${percentProgress}`;
-            progress_bar.textContent = `${Math.round(percentProgress)}%`;
-
-            //progress_bar_bg.innerHTML = `<div class="progress-bar progress-bar-striped bg-success"
-            //  role="progressbar" style="width: ${percentProgress}%" aria-valuenow="${percentProgress}" aria-valuemin="0"
-            //  aria-valuemax="100">${percentProgress}%</div>`;
+            //progress_bar.textContent = `${Math.round(percentProgress)}%`;
+            if (percentProgress >= 100) {
+              bottom_text.textContent = `Querying database...`;
+            } else {
+              bottom_text.textContent = `${Math.round(percentProgress)}%`;
+            }
           }
         });
         return xhr;
       },
       success: function (response) {
         console.log(response);
-        uploadForm.reset();
         progress_bar_bg.classList.add("not-visible");
+        bottom_text.textContent = `Upload complete!`;
+        bottom_link.href = response.redirect_url;
+        bottom_link.classList.remove("not-visible");
+        uploadForm.reset();
       },
       error: function (err) {
         console.log(err);
+        bottom_text.textContent = err;
+        bottom_link.classList.remove("not-visible");
       },
       cache: false,
       contentType: false,

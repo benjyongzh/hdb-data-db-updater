@@ -39,9 +39,6 @@ class ResaleTransactionAdmin(admin.ModelAdmin):
 
                     # update postalcodes table
 
-                    # response
-                    
-                    # form.save()
                     data = {"redirect_url": "/api/resale-transactions/"}
                     return JsonResponse(data, status=status.HTTP_200_OK)
                     # return HttpResponse(data, status=status.HTTP_200_OK)
