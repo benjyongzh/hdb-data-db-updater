@@ -22,7 +22,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('__debug__/', include(debug_toolbar.urls)),
     # path('data/', include('datacollector.urls')),
-    path('resaletransactions/', include('resaletransactions.urls')), #/resaletransactions/update
+    # path('resaletransactions/', include('resaletransactions.urls')), #/resaletransactions/update
     path('api/', include('api.urls')), #/api/resale-transactions | /api/postal-codes
     path('postalcodes/', include('postalcodes.urls')), #/postalcodes/update/postal_codes | /postalcodes/update/polygons
     
