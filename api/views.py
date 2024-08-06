@@ -2,8 +2,8 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from resaletransactions.models import ResaleTransaction
-from postalcodes.models import PostalCodeAddress
-from .serializers import ResaleTransactionSerializer, PostalCodeAddressSerializer
+from postalcodes.models import PostalCodeAddress, BuildingGeometryPolygon
+from .serializers import ResaleTransactionSerializer, PostalCodeAddressSerializer, BuildingGeometryPolygonSerializer
 
 @api_view(['GET'])
 def get_resale_prices(request):
@@ -38,8 +38,8 @@ def get_postal_codes(request):
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-# @api_view(['POST'])
-# def update_postal_codes(request):
-#     new_addresses = request.data
-#     serializer = PostalCodeAddressSerializer(new_addresses, many=True)
-#     return Response(serializer.data)
+@api_view(['GET'])
+def get_building_polygons(request):
+    polygons = BuildingGeometryPolygon.objects.all()
+    serializer = BuildingGeometryPolygonSerializer(polygons, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
