@@ -1,10 +1,9 @@
 from django.contrib import admin
 from postalcodes.models import PostalCodeAddress, BuildingGeometryPolygon
-from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render
 from django.urls import path
-from rest_framework import status
 from common.forms import FileUploadForm, process_file_upload
+from postalcodes.util.parse_geojson import import_new_geojson_features_into_table
 
 # Register your models here.
 @admin.register(PostalCodeAddress)
@@ -37,4 +36,5 @@ class BuildingGeometryPolygonAdmin(admin.ModelAdmin):
             return render(request, "admin/import_file.html", context=form_context)
         
 def upload_geojson_impl(upload_file):
-    print(("helo"))
+    # update building polygons table
+    import_new_geojson_features_into_table(BuildingGeometryPolygon, upload_file)
