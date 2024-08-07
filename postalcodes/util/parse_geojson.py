@@ -1,8 +1,7 @@
 from bs4 import BeautifulSoup
 from postalcodes.models import BuildingGeometryPolygon
 from django.contrib.gis.geos import Polygon
-import pandas_geojson as pdg
-geojson = pdg.read_geojson('datasets/National_Obesity_By_State.geojson')
+import json
 
 def get_postal_code_from_feature(feature) -> str:
     description = feature['properties']['Description']
@@ -27,21 +26,23 @@ def get_block_number_from_description(description) -> str:
 def get_geometry_from_feature(feature):
     return feature['geometry']
 
-def import_new_geojson_features_into_table(django_object, geojson_file):
-    gj = pdg.read_geojson(geojson_file)
-    new_geojsons = []
+def import_new_geojson_features_into_table(model_object, geojson_file):
 
-    # iterate through every feature
+    gj = json.load(geojson_file)
+
+    # # iterate through every feature
     features = gj['features']
-
+    new_geojsons = []
+    # for each feature, get postalcode
     for feature in features:
         block_number = get_block_number_from_feature(feature)
         postal_code = get_postal_code_from_feature(feature)
 
-        db_row = django_object.objects.filter(block__exact=block_number, postal_code__exact=postal_code).first()
-        
-        # if postalcode doesnt exist in db
+        db_row = model_object.objects.filter(block__exact=block_number, postal_code__exact=postal_code).first()
+
         if db_row == None:
+            # if postalcode doesnt exist in db
+
             # get geometry object,
             geom = get_geometry_from_feature(feature)
 
