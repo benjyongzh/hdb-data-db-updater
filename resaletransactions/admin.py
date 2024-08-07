@@ -5,7 +5,7 @@ from rest_framework import status
 from django.http import JsonResponse, HttpResponse
 from resaletransactions.models import ResaleTransaction
 from resaletransactions.util.csv_operations import update_table_with_csv
-from forms import FileUploadForm
+from common.forms import FileUploadForm, process_file_upload
 
 # Register your models here.
 @admin.register(ResaleTransaction)
@@ -19,22 +19,13 @@ class ResaleTransactionAdmin(admin.ModelAdmin):
 
     def upload_csv(self, request):
         if request.method == "POST":
-            form = FileUploadForm(request.POST, request.FILES)
-            if form.is_valid() and request.FILES['input_file']:
-                csv_file = request.FILES['input_file']
-                if not csv_file.name.endswith('.csv'):
-                    return HttpResponse('File is not CSV.', status=status.HTTP_406_NOT_ACCEPTABLE)
-
-                # update resale transactions table
-                try:
-                    update_table_with_csv("resaletransactions_resaletransaction", csv_file)
-                    data = {"redirect_url": "/api/resale-transactions/"}
-                    return JsonResponse(data, status=status.HTTP_200_OK)
-
-                except:
-                    return JsonResponse({'error':'Could not complete file upload.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            else:
-                return JsonResponse({'error':'Form is invalid.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return process_file_upload(
+                request,
+                request_file_key='input_file',
+                file_ext='.csv',
+                success_try_func=upload_csv_file_impl,
+                success_redirect_url="/api/resale-transactions/"
+            )
         else:
             form = FileUploadForm()
             form_context = {
@@ -43,4 +34,5 @@ class ResaleTransactionAdmin(admin.ModelAdmin):
             }
             return render(request, "admin/import_file.html", context=form_context)
 
-    
+def upload_csv_file_impl(input_file):
+    update_table_with_csv("resaletransactions_resaletransaction", input_file)
