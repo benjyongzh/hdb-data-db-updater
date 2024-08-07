@@ -149,9 +149,8 @@
         uploadForm.reset();
       },
       error: function (err) {
-        console.log(err);
-        bottom_text.textContent = err;
-        bottom_link.classList.remove("not-visible");
+        //console.log(err);
+        bottom_text.textContent = `Error ${err.status}: ${err.responseJSON.error}`;
       },
       cache: false,
       contentType: false,
