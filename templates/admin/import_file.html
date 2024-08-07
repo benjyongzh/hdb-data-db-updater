@@ -121,7 +121,10 @@
       url: window.location.pathname,
       data: formData,
       dataType: "json",
-      beforeSend: function () {},
+      beforeSend: function () {
+        progress_bar.style.width = `0%`;
+        progress_bar.ariaValueNow = `0`;
+      },
       xhr: function () {
         const xhr = new window.XMLHttpRequest();
 
