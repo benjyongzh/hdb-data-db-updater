@@ -26,58 +26,62 @@ def get_block_number_from_description(description) -> str:
 def get_geometry_from_feature(feature):
     return feature['geometry']
 
-def import_new_geojson_features_into_table(model_object, geojson_file):
+def import_new_geojson_features_into_table(model_object, geojson_file) -> None:
 
     try:
         gj = json.load(geojson_file)
     except (FileNotFoundError) as e:
-        raise Exception(f"An exception occurred: {e}")
+        raise Exception(f"Error: {e}")
 
     # # iterate through every feature
     features = gj['features']
-    new_geojsons = []
+    # new_geojsons = []
     # for each feature, get postalcode
-    for feature in features:
+    for feature,feature_index in features:
         try:
             block_number:str = get_block_number_from_feature(feature)
             postal_code:str = get_postal_code_from_feature(feature)
         except(ValueError, KeyError) as e:
-            raise Exception(f"An exception occurred: {e}")
+            print(f"Error for feature {feature_index}: {e}")
+            continue
 
         db_row = model_object.objects.filter(block__exact=block_number, postal_code__exact=postal_code).first()
+        # if postalcode doesnt exist in db
+        if db_row != None:
+            continue
 
-        if db_row == None:
-            # if postalcode doesnt exist in db
+        # get geometry object,
+        geom = get_geometry_from_feature(feature)
 
-            # get geometry object,
-            geom = get_geometry_from_feature(feature)
+        # remove z axis from geometry, use first index of coordinates only
+        try:
+            geom_coordinates = remove_z_from_geom_coordinates(geom['coordinates'])
+            final_geom = Polygon(geom_coordinates)
+        except (SyntaxError, ValueError, IndexError) as e:
+            print(f"Error in making Polygon object: {e}")
+            continue
 
-            # remove z axis from geometry, use first index of coordinates only
-            try:
-                geom_coordinates = remove_z_from_geom_coordinates(geom['coordinates'])
-                final_geom = Polygon(geom_coordinates)
-            except (SyntaxError) as e:
-                raise Exception(f"An exception occurred: {e}")
-            else:
-                # create new row with block + postalcode + geometry,
-                # use SELECT ST_GeomFromGeoJSON to convert from geojson to postGIS geom,
-                # ST_AsText,
-                # ST_AsGeoJSON to convert from postGIS geom to geojson
-                new_polygon = {
-                    "block": block_number,
-                    "postal_code": postal_code,
-                    "building_polygon": final_geom
-                }
-                try:
-                    final_new_polygon = BuildingGeometryPolygon.objects.create(**new_polygon)
-                    new_geojsons.append(final_new_polygon)
-                except (TypeError, ValueError) as e:
-                    raise Exception(f"An exception occurred: {e}")
-            finally:
-                continue
+        # create new row with block + postalcode + geometry,
+        # use SELECT ST_GeomFromGeoJSON to convert from geojson to postGIS geom,
+        # ST_AsText,
+        # ST_AsGeoJSON to convert from postGIS geom to geojson
+        # new_polygon = {
+        #     "block": block_number,
+        #     "postal_code": postal_code,
+        #     "building_polygon": final_geom
+        # }
+        try:
+            # BuildingGeometryPolygon.objects.create(**new_polygon)
+            BuildingGeometryPolygon.objects.create(
+                block=block_number,
+                postal_code=postal_code,
+                building_polygon=final_geom
+            )
+            # new_geojsons.append(final_new_polygon)
+        except (TypeError, ValueError) as e:
+            print(f"Error in adding Polygon to database: {e}")
         
-
-    return new_geojsons
+    # return new_geojsons
 
 
 def remove_z_from_geom_coordinates(coords):
@@ -88,7 +92,7 @@ def remove_z_from_geom_coordinates(coords):
             point = [point[0], point[1]]
             arr2.append(point)
         except(IndexError) as e:
-            raise Exception(f"An exception occurred: {e}")
+            print(f"Error in removing Z of coordinates: {e}")
     return arr2
 
 '''
