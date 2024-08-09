@@ -89,8 +89,6 @@ def import_new_geojson_features_into_table(model_object, geojson_file) -> None:
                     {e}
                 """)
 
-coordinate_point = [float] * 3
-
 def remove_z_from_geom_coordinates(coords):
     arr = coords[0]
     arr2 = []
