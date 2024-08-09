@@ -1,11 +1,17 @@
 from django.db import models
 from django.contrib.gis.db import models
+from django.core.exceptions import ValidationError
+
+def postal_code_validation(value:str):
+    if len(value) != 6 or not value.isdigit():
+        raise ValidationError(f"{value} is an invalid postal code.")
 
 # Create your models here.
 class PostalCodeAddress(models.Model):
     block = models.CharField(max_length=4)
     street_name = models.CharField(max_length=100)
-    postal_code = models.CharField(max_length=6)
+    # postal_code = models.CharField(max_length=6)
+    postal_code = models.CharField(validators=[postal_code_validation])
 
     def __str__(self):
         return f"Full address of {self.block} {self.street_name} {self.postal_code}"
@@ -18,7 +24,7 @@ class PostalCodeAddress(models.Model):
 
 class BuildingGeometryPolygon(models.Model):
     block = models.CharField(max_length=4)
-    postal_code = models.CharField(max_length=6)
+    postal_code = models.CharField(validators=[postal_code_validation])
     building_polygon = models.PolygonField()
 
     def __str__(self):
