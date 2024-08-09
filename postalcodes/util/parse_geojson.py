@@ -35,9 +35,8 @@ def import_new_geojson_features_into_table(model_object, geojson_file) -> None:
 
     # # iterate through every feature
     features = gj['features']
-    # new_geojsons = []
     # for each feature, get postalcode
-    for feature,feature_index in features:
+    for feature_index,feature in enumerate(features):
         try:
             block_number:str = get_block_number_from_feature(feature)
             postal_code:str = get_postal_code_from_feature(feature)
@@ -58,7 +57,14 @@ def import_new_geojson_features_into_table(model_object, geojson_file) -> None:
             geom_coordinates = remove_z_from_geom_coordinates(geom['coordinates'])
             final_geom = Polygon(geom_coordinates)
         except (SyntaxError, ValueError, IndexError) as e:
-            print(f"Error in making Polygon object: {e}")
+            print(f"""
+                    Error for feature {feature_index} (block {block_number}, postal code {postal_code}) in making Polygon object:
+                    {e}
+                    Original coordinates:
+                    {geom['coordinates']}
+                    Refined coordinates:
+                    {geom_coordinates}
+                """)
             continue
 
         # create new row with block + postalcode + geometry,
@@ -77,16 +83,19 @@ def import_new_geojson_features_into_table(model_object, geojson_file) -> None:
                 postal_code=postal_code,
                 building_polygon=final_geom
             )
-            # new_geojsons.append(final_new_polygon)
-        except (TypeError, ValueError) as e:
-            print(f"Error in adding Polygon to database: {e}")
-        
-    # return new_geojsons
+        except (TypeError, ValueError, IndexError) as e:
+            print(f"""
+                    Error for feature {feature_index} (block {block_number}, postal code {postal_code}) in adding Polygon to database:
+                    {e}
+                """)
 
+coordinate_point = [float] * 3
 
 def remove_z_from_geom_coordinates(coords):
     arr = coords[0]
     arr2 = []
+    while len(arr) < 3 and len(arr[0]) != 3:
+        arr = arr[0]
     for point in arr:
         try:
             point = [point[0], point[1]]
