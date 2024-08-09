@@ -1,5 +1,21 @@
 {% extends "admin/change_list.html" %} {% load static %} {% block content %}
 
-<a href="upload-csv/">Upload a csv file</a>
+<style>
+  .button {
+    padding: 8px 16px;
+    outline: none;
+    border-width: 0px;
+    border-radius: 4px;
+    background-color: rgb(64, 118, 144);
+    color: white;
+    cursor: pointer;
+    margin: 8px 0px;
+  }
+  .button:hover {
+    background-color: rgb(38, 75, 93);
+  }
+</style>
+
+<a class="button" href="upload-csv/">Upload a csv file</a>
 
 {{ block.super }} {% endblock %}
