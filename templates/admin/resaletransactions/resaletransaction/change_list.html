@@ -1,21 +1,35 @@
 {% extends "admin/change_list.html" %} {% load static %} {% block content %}
 
 <style>
-  .button {
-    padding: 8px 16px;
+  .not-visible {
+    display: none;
+  }
+
+  .row-container {
+    justify-content: start;
+    align-items: center;
+    max-width: 500px;
+    padding: 12px 0px;
+  }
+
+  .custom-button {
+    padding: 8px 20px 11px 20px;
     outline: none;
     border-width: 0px;
     border-radius: 4px;
     background-color: rgb(64, 118, 144);
-    color: white;
     cursor: pointer;
-    margin: 8px 0px;
   }
-  .button:hover {
+
+  .custom-button:hover {
     background-color: rgb(38, 75, 93);
   }
 </style>
 
-<a class="button" href="upload-csv/">Upload a csv file</a>
+<div class="row-container">
+  <a class="custom-button" href="upload-csv/" style="color: white"
+    >Upload a csv file</a
+  >
+</div>
 
 {{ block.super }} {% endblock %}
