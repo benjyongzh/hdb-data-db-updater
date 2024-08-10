@@ -4,6 +4,7 @@ from django.shortcuts import render
 from django.urls import path
 from common.forms import FileUploadForm, process_file_upload
 from postalcodes.util.parse_geojson import import_new_geojson_features_into_table
+from postalcodes.util.postal_codes import update_postalcode_address_table
 
 # Register your models here.
 @admin.register(PostalCodeAddress)
@@ -26,10 +27,7 @@ class PostalCodeAddressAdmin(admin.ModelAdmin):
             return render(request, "admin/update_mapping.html", context=form_context)
 
 def update_postalcode_address_table_impl():
-    # update building polygons table
-    table_to_upload:str = "postalcodes_postalcodeaddress"
-    import_new_geojson_features_into_table(BuildingGeometryPolygon, upload_file)
-    return
+    update_postalcode_address_table()
 
 @admin.register(BuildingGeometryPolygon)
 class BuildingGeometryPolygonAdmin(admin.ModelAdmin):
@@ -55,3 +53,6 @@ class BuildingGeometryPolygonAdmin(admin.ModelAdmin):
                 'form_title': "Upload HDB building polygons .geojson file.",
             }
             return render(request, "admin/import_file.html", context=form_context)
+        
+def upload_geojson_impl(geojson_file):
+    import_new_geojson_features_into_table(BuildingGeometryPolygon, geojson_file)
