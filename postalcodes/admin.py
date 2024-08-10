@@ -17,19 +17,19 @@ class PostalCodeAddressAdmin(admin.ModelAdmin):
 
     def update_postalcode_address_table(self, request):
         if request.method == "POST":
-            return process_file_upload(
-                request,
-                request_file_key='input_file',
-                file_ext='.geojson',
-                success_try_func=upload_geojson_impl,
-                success_redirect_url="/api/building-polygons/"
-            )
+            return update_postalcode_address_table_impl()
         else:
             form_context = {
                 'form_title': "Refresh and update the mapping table of postal codes and addresses",
                 'table_name': "postalcodes_postalcodeaddress"
             }
             return render(request, "admin/update_mapping.html", context=form_context)
+
+def update_postalcode_address_table_impl():
+    # update building polygons table
+    table_to_upload:str = "postalcodes_postalcodeaddress"
+    import_new_geojson_features_into_table(BuildingGeometryPolygon, upload_file)
+    return
 
 @admin.register(BuildingGeometryPolygon)
 class BuildingGeometryPolygonAdmin(admin.ModelAdmin):
@@ -55,7 +55,3 @@ class BuildingGeometryPolygonAdmin(admin.ModelAdmin):
                 'form_title': "Upload HDB building polygons .geojson file.",
             }
             return render(request, "admin/import_file.html", context=form_context)
-        
-def upload_geojson_impl(upload_file):
-    # update building polygons table
-    import_new_geojson_features_into_table(BuildingGeometryPolygon, upload_file)
