@@ -5,6 +5,8 @@ from django.urls import path
 from common.forms import FileUploadForm, process_file_upload
 from postalcodes.util.parse_geojson import import_new_geojson_features_into_table
 from postalcodes.util.postal_codes import update_postalcode_address_table
+from rest_framework import status
+from django.http import JsonResponse
 
 # Register your models here.
 @admin.register(PostalCodeAddress)
@@ -21,13 +23,21 @@ class PostalCodeAddressAdmin(admin.ModelAdmin):
             return update_postalcode_address_table_impl()
         else:
             form_context = {
-                'form_title': "Refresh and update the mapping table of postal codes and addresses",
-                'table_name': "postalcodes_postalcodeaddress"
+                'form_title': "Update Postalcode-Address Relation Table",
+                'form_subtitle': "Refresh and update the mapping table of postal codes and addresses.",
+                'table_name': "postalcodes_postalcodeaddress",
+
             }
             return render(request, "admin/update_mapping.html", context=form_context)
 
 def update_postalcode_address_table_impl():
-    update_postalcode_address_table()
+    try:
+        data = update_postalcode_address_table()
+    except Exception as e:
+        return JsonResponse({'error':f"Could not update postalcode-address table: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    resp = {"redirect_url": "/api/postal-codes/", "new_addresses": data}
+    return JsonResponse(resp, status=status.HTTP_200_OK)
 
 @admin.register(BuildingGeometryPolygon)
 class BuildingGeometryPolygonAdmin(admin.ModelAdmin):
