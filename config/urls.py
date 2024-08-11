@@ -24,6 +24,6 @@ urlpatterns = [
     # path('data/', include('datacollector.urls')),
     # path('resaletransactions/', include('resaletransactions.urls')), #/resaletransactions/update
     path('api/', include('api.urls')), #/api/resale-transactions | /api/postal-codes
-    path('postalcodes/', include('postalcodes.urls')), #/postalcodes/update/postal_codes | /postalcodes/update/polygons
+    # path('postalcodes/', include('postalcodes.urls')), #/postalcodes/update/postal_codes | /postalcodes/update/polygons
     
 ]
