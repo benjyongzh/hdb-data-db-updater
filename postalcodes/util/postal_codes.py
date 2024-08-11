@@ -4,6 +4,7 @@ from postalcodes.models import PostalCodeAddress
 import requests
 import urllib.parse
 from ratelimit import limits, sleep_and_retry
+from api.serializers import PostalCodeAddressSerializer
 
 def update_postalcode_address_table() -> None:
     all_addresses = ResaleTransaction.objects.distinct("block", "street_name").values("block", "street_name")
@@ -25,7 +26,7 @@ def update_postalcode_address_table() -> None:
                 street_name = address_info['street_name'],
                 postal_code = postal_code)
             new_postal_code_objects.append(address_with_postal_code)
-        except (TypeError, ValueError, IndexError) as e:
+        except Exception as e:
             print(f"""
                     Error for '{address_string}' in being registered as new address:
                     {e}
@@ -34,10 +35,14 @@ def update_postalcode_address_table() -> None:
 
     # add address and postal code as new row to postalcodeaddress table.
     try:
-        PostalCodeAddress.objects.bulk_create(new_postal_code_objects)
+        final_new_addresses = PostalCodeAddress.objects.bulk_create(new_postal_code_objects)
     except Exception as e:
         raise e
     #! for each row extra in table, delete row.
+    
+    # respond with new addresses
+    serializer = PostalCodeAddressSerializer(final_new_addresses, many=True)
+    return serializer.data
 
 # FIFTEEN_MINUTES = 900
 @sleep_and_retry
