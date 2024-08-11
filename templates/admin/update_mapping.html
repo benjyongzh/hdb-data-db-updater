@@ -39,7 +39,7 @@
   }
 
   .max-width {
-    max-width: 500px;
+    max-width: 650px;
   }
 </style>
 
@@ -54,10 +54,10 @@
     >
       {% csrf_token %}
       <h4 class="mb-4">{{form_title}}</h4>
-      <h4 class="mb-4">{{table_name}}</h4>
+      <p class="mb-4">{{form_subtitle}}</p>
 
       <div class="d-flex align-items-center justify-content-center gap-10">
-        <button type="submit" class="btn btn-primary">Upload</button>
+        <button type="submit" class="btn btn-primary">Start update</button>
         <button
           type="button"
           class="btn btn-outline-secondary"
@@ -83,8 +83,7 @@
     </div>
   </div>
   <div class="mt-3 row justify-content-center">
-    <div class="col max-width d-flex flex-column align-items-center">
-      <h5 id="bottom-text"><strong></strong></h5>
+    <div class="col gap-10 max-width d-flex flex-column align-items-center">
       <a
         id="bottom-link"
         href="/api/postal-codes/"
@@ -92,6 +91,9 @@
         role="button"
         >View result</a
       >
+      <h6 id="bottom-text"><strong></strong></h6>
+      <h6 id="error-text" class="text-danger"><strong></strong></h6>
+      <h6 id="content"><strong></strong></h6>
     </div>
   </div>
 </div>
@@ -100,18 +102,24 @@
   const uploadForm = document.getElementById("update-mapping-form");
   const progress_bar_bg = document.getElementById("progress");
   const progress_bar = document.getElementById("progressbar");
-  const bottom_text = document.getElementById("bottom-text");
   const bottom_link = document.getElementById("bottom-link");
+  const bottom_text = document.getElementById("bottom-text");
+  const error_text = document.getElementById("error-text");
 
   $("#update-mapping-form").submit(function (e) {
     e.preventDefault();
     $form = $(this);
     // formData must sbe based on building geometry table and resale transactions table
     var formData = new FormData(this);
-    if (media_data != null) {
-      console.log(media_data);
-      progress_bar_bg.classList.remove("not-visible");
-      bottom_link.classList.add("not-visible");
+    // const media_data = input_file.files[0];
+    try {
+      if (media_data != null) {
+        console.log(media_data);
+        progress_bar_bg.classList.remove("not-visible");
+        bottom_link.classList.add("not-visible");
+      }
+    } catch (e) {
+      error_text.textContent = e;
     }
 
     $.ajax({
@@ -122,6 +130,8 @@
       beforeSend: function () {
         progress_bar.style.width = `0%`;
         progress_bar.ariaValueNow = `0`;
+        bottom_text.textContent = ``;
+        error_text.textContent = ``;
       },
       xhr: function () {
         const xhr = new window.XMLHttpRequest();
@@ -151,7 +161,7 @@
       },
       error: function (err) {
         //console.log(err);
-        bottom_text.textContent = `Error ${err.status}: ${err.responseJSON.error}`;
+        error_text.textContent = `Error ${err.status}: ${err.responseJSON.error}`;
       },
       cache: false,
       contentType: false,
