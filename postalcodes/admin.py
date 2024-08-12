@@ -7,6 +7,7 @@ from postalcodes.util.parse_geojson import import_new_geojson_features_into_tabl
 from postalcodes.util.postal_codes import update_postalcode_address_table
 from rest_framework import status
 from django.http import JsonResponse
+from common.util.utils import update_timestamps_table_lastupdated
 
 # Register your models here.
 @admin.register(PostalCodeAddress)
@@ -36,6 +37,9 @@ def update_postalcode_address_table_impl():
     except Exception as e:
         return JsonResponse({'error':f"Could not update postalcode-address table: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
+    # update table timestamp
+    update_timestamps_table_lastupdated("postalcodes_postalcodeaddress")
+
     resp = {"redirect_url": "/api/postal-codes/", "new_addresses": data}
     return JsonResponse(resp, status=status.HTTP_200_OK)
 
@@ -64,5 +68,8 @@ class BuildingGeometryPolygonAdmin(admin.ModelAdmin):
             }
             return render(request, "admin/import_file.html", context=form_context)
         
-def upload_geojson_impl(geojson_file):
+def upload_geojson_impl(geojson_file) -> None:
     import_new_geojson_features_into_table(BuildingGeometryPolygon, geojson_file)
+        
+    # update table timestamp
+    update_timestamps_table_lastupdated("postalcodes_buildinggeometrypolygon")
