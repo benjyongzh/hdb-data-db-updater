@@ -7,7 +7,4 @@ class TablesLastUpdatedAdmin(admin.ModelAdmin):
     list_display = ['table', 'last_updated']
 
 def update_tables_last_updated(table_name:str):
-    try:
-        pass
-    except Exception as e:
-        pass
+    TablesLastUpdated.objects.update_or_create(table=table_name)
