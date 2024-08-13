@@ -53,7 +53,10 @@
       class="col d-flex flex-column align-items-center max-width"
     >
       {% csrf_token %}
-      <h4 class="mb-4">{{form_title}}</h4>
+      <h4 class="mb-2">{{form_title}}</h4>
+      <h6 id="table-last-updated-text" class="mb-4">
+        Last Updated: {{table_last_updated}}
+      </h6>
 
       {{form.input_file}}
 
@@ -104,6 +107,7 @@
   const progress_bar = document.getElementById("progressbar");
   const bottom_text = document.getElementById("bottom-text");
   const bottom_link = document.getElementById("bottom-link");
+  const last_updated_text = document.getElementById("table-last-updated-text");
 
   $("#upload-form").submit(function (e) {
     e.preventDefault();
@@ -150,6 +154,7 @@
         bottom_link.href = response.redirect_url;
         bottom_link.classList.remove("not-visible");
         uploadForm.reset();
+        last_updated_text.textContent = response.table_last_updated;
       },
       error: function (err) {
         //console.log(err);

@@ -7,7 +7,7 @@ from postalcodes.util.parse_geojson import import_new_geojson_features_into_tabl
 from postalcodes.util.postal_codes import update_postalcode_address_table
 from rest_framework import status
 from django.http import JsonResponse
-from common.util.utils import update_timestamps_table_lastupdated
+from common.util.utils import update_timestamps_table_lastupdated, get_table_lastupdated_datetime
 
 # Register your models here.
 @admin.register(PostalCodeAddress)
@@ -21,12 +21,15 @@ class PostalCodeAddressAdmin(admin.ModelAdmin):
 
     def update_postalcode_address_table(self, request):
         if request.method == "POST":
-            return update_postalcode_address_table_impl()
+            data = update_postalcode_address_table_impl()
+            return JsonResponse(data, status=status.HTTP_200_OK)
         else:
+            last_updated:str = get_table_lastupdated_datetime("postalcodes_postalcodeaddress")['last_updated']
             form_context = {
                 'form_title': "Update Postalcode-Address Relation Table",
                 'form_subtitle': "Refresh and update the mapping table of postal codes and addresses.",
                 'table_name': "postalcodes_postalcodeaddress",
+                'table_last_updated': last_updated
 
             }
             return render(request, "admin/update_mapping.html", context=form_context)
@@ -38,10 +41,12 @@ def update_postalcode_address_table_impl():
         return JsonResponse({'error':f"Could not update postalcode-address table: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     # update table timestamp
-    update_timestamps_table_lastupdated("postalcodes_postalcodeaddress")
-
-    resp = {"redirect_url": "/api/postal-codes/", "new_addresses": data}
-    return JsonResponse(resp, status=status.HTTP_200_OK)
+    resp = {
+        "redirect_url": "/api/postal-codes/",
+        "new_addresses": data,
+        'table_last_updated': update_timestamps_table_lastupdated("postalcodes_postalcodeaddress")
+    }
+    return resp
 
 @admin.register(BuildingGeometryPolygon)
 class BuildingGeometryPolygonAdmin(admin.ModelAdmin):
@@ -62,14 +67,16 @@ class BuildingGeometryPolygonAdmin(admin.ModelAdmin):
             )
         else:
             form = FileUploadForm()
+            last_updated:str = get_table_lastupdated_datetime("postalcodes_buildinggeometrypolygon")['last_updated']
             form_context = {
                 'form':form,
                 'form_title': "Upload HDB building polygons .geojson file.",
+                'table_last_updated': last_updated
             }
             return render(request, "admin/import_file.html", context=form_context)
         
-def upload_geojson_impl(geojson_file) -> None:
+def upload_geojson_impl(geojson_file):
     import_new_geojson_features_into_table(BuildingGeometryPolygon, geojson_file)
         
-    # update table timestamp
-    update_timestamps_table_lastupdated("postalcodes_buildinggeometrypolygon")
+    # update table timestamp    
+    return {'table_last_updated': update_timestamps_table_lastupdated("postalcodes_buildinggeometrypolygon")}

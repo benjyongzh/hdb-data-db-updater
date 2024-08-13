@@ -4,7 +4,7 @@ from django.shortcuts import render
 from resaletransactions.models import ResaleTransaction
 from resaletransactions.util.csv_operations import update_table_with_csv
 from common.forms import FileUploadForm, process_file_upload
-from common.util.utils import update_timestamps_table_lastupdated
+from common.util.utils import update_timestamps_table_lastupdated, get_table_lastupdated_datetime
 
 # Register your models here.
 @admin.register(ResaleTransaction)
@@ -27,14 +27,16 @@ class ResaleTransactionAdmin(admin.ModelAdmin):
             )
         else:
             form = FileUploadForm()
+            last_updated:str = get_table_lastupdated_datetime("resaletransactions_resaletransaction")['last_updated']
             form_context = {
                 'form':form,
                 'form_title': "Upload resale transactions .csv file.",
+                'table_last_updated': last_updated
             }
             return render(request, "admin/import_file.html", context=form_context)
 
-def upload_csv_file_impl(input_file) -> None:
+def upload_csv_file_impl(input_file):
     update_table_with_csv("resaletransactions_resaletransaction", input_file)
         
     # update table timestamp
-    update_timestamps_table_lastupdated("resaletransactions_resaletransaction")
+    return {'table_last_updated': update_timestamps_table_lastupdated("resaletransactions_resaletransaction")}
