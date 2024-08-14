@@ -55,6 +55,9 @@
       {% csrf_token %}
       <h4 class="mb-4">{{form_title}}</h4>
       <p class="mb-4">{{form_subtitle}}</p>
+      <h6 id="table-last-updated-text" class="mb-4">
+        Last Updated: {{table_last_updated}}
+      </h6>
 
       <div class="d-flex align-items-center justify-content-center gap-10">
         <button type="submit" class="btn btn-primary">Start update</button>
@@ -105,6 +108,7 @@
   const bottom_link = document.getElementById("bottom-link");
   const bottom_text = document.getElementById("bottom-text");
   const error_text = document.getElementById("error-text");
+  const last_updated_text = document.getElementById("table-last-updated-text");
 
   $("#update-mapping-form").submit(function (e) {
     e.preventDefault();
