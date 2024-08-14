@@ -27,7 +27,7 @@ class ResaleTransactionAdmin(admin.ModelAdmin):
             )
         else:
             form = FileUploadForm()
-            last_updated:str = get_table_lastupdated_datetime("resaletransactions_resaletransaction")['last_updated']
+            last_updated:str = get_table_lastupdated_datetime("resaletransactions_resaletransaction")
             form_context = {
                 'form':form,
                 'form_title': "Upload resale transactions .csv file.",

@@ -24,7 +24,7 @@ class PostalCodeAddressAdmin(admin.ModelAdmin):
             data = update_postalcode_address_table_impl()
             return JsonResponse(data, status=status.HTTP_200_OK)
         else:
-            last_updated:str = get_table_lastupdated_datetime("postalcodes_postalcodeaddress")['last_updated']
+            last_updated:str = get_table_lastupdated_datetime("postalcodes_postalcodeaddress")
             form_context = {
                 'form_title': "Update Postalcode-Address Relation Table",
                 'form_subtitle': "Refresh and update the mapping table of postal codes and addresses.",
@@ -67,7 +67,7 @@ class BuildingGeometryPolygonAdmin(admin.ModelAdmin):
             )
         else:
             form = FileUploadForm()
-            last_updated:str = get_table_lastupdated_datetime("postalcodes_buildinggeometrypolygon")['last_updated']
+            last_updated:str = get_table_lastupdated_datetime("postalcodes_buildinggeometrypolygon")
             form_context = {
                 'form':form,
                 'form_title': "Upload HDB building polygons .geojson file.",
