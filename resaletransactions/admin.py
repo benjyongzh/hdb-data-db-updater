@@ -9,7 +9,11 @@ from common.util.utils import update_timestamps_table_lastupdated, get_table_las
 # Register your models here.
 @admin.register(ResaleTransaction)
 class ResaleTransactionAdmin(admin.ModelAdmin):
-    list_display = ['month', 'town', 'block', 'street_name', 'resale_price']
+    list_display = ['unit', 'flat_type', 'town', 'month', 'resale_price']
+
+    @admin.display(description="Unit")
+    def unit(self, obj):
+        return f"{obj.street_name} Blk {obj.block}, {obj.floor_area_sqm} sqm, {obj.storey_range} storey".upper()
 
     def get_urls(self):
         urls = super().get_urls()
