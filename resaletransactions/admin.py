@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.urls import path
 from django.shortcuts import render
 from resaletransactions.models import ResaleTransaction
-from resaletransactions.util.csv_operations import update_table_with_csv
+from resaletransactions.util.csv_operations import update_resaletransactions_table_with_csv
 from common.forms import FileUploadForm, process_file_upload
 from common.util.utils import update_timestamps_table_lastupdated, get_table_lastupdated_datetime
 
@@ -40,7 +40,7 @@ class ResaleTransactionAdmin(admin.ModelAdmin):
             return render(request, "admin/import_file.html", context=form_context)
 
 def upload_csv_file_impl(input_file):
-    update_table_with_csv("resaletransactions_resaletransaction", input_file)
+    update_resaletransactions_table_with_csv("resaletransactions_resaletransaction", input_file)
         
     # update table timestamp
     return {'table_last_updated': update_timestamps_table_lastupdated("resaletransactions_resaletransaction")}
