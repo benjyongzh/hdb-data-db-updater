@@ -17,27 +17,18 @@ def update_postalcode_address_table() -> None:
     new_postal_code_objects:list[PostalCodeAddress] = []
     for address_index,address_info in enumerate(new_addresses):
         address_string = f"{address_info['block']} {address_info['street_name']}"
-        print(f"New postal code id no. {address_index}: '{address_string}' to register")
-
         try:
-            postal_code:str = get_postal_code_from_address(address_string)
-            address_with_postal_code:PostalCodeAddress = PostalCodeAddress(
-                block = address_info['block'],
-                street_name = address_info['street_name'],
-                postal_code = postal_code)
+            address_with_postal_code:PostalCodeAddress = create_postalcode_object(block=address_info['block'], street_name=address_info['street_name'])
             new_postal_code_objects.append(address_with_postal_code)
         except Exception as e:
-            print(f"""
-                    Error for '{address_string}' in being registered as new address:
-                    {e}
-                """)
+            print(f"Error for '{address_string}' in being registered as new address: {e}")
             continue
 
     # add address and postal code as new row to postalcodeaddress table.
     try:
         final_new_addresses = PostalCodeAddress.objects.bulk_create(new_postal_code_objects)
     except Exception as e:
-        raise e
+        raise f"Failed to create new postalcodeaddresses: {e}"
     #! for each row extra in table, delete row.
     
     # respond with new addresses
@@ -67,8 +58,14 @@ def get_postal_code_from_address(address:str) -> str:
                 {e}
             """)
         return ""
-    # if int(response.json()['found']) > 0:
-    #     postal_code = response.json()['results'][0]['POSTAL']
-    # else:
-    #     postal_code = ""
-    # return postal_code
+
+def create_postalcode_object(block:str, street_name:str) -> PostalCodeAddress:
+    address_string = f"{block} {street_name}"
+    print(f"Attempting to create postal code for: '{address_string}'")
+    postal_code:str = get_postal_code_from_address(address_string)
+    
+    return PostalCodeAddress(
+        block = block,
+        street_name = street_name,
+        postal_code = postal_code)
+    

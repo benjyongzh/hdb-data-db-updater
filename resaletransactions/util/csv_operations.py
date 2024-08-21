@@ -4,17 +4,18 @@ from common.util.get_latest_file_in_folder import get_latest_file_in_folder
 from config.env import env
 import pandas as pd
 from sqlalchemy import create_engine,types
-from postalcodes.util.postal_codes import get_postal_code_from_address
+from postalcodes.util.postal_codes import get_postal_code_from_address, create_postalcode_object
 from postalcodes.models import PostalCodeAddress
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
+from typing import List
 
 
 def update_resaletransactions_table_with_csv(table_name,csv_file) -> None:
     # pandas dataframe of file
     dataframe = pd.read_csv(csv_file)
-    dataframe['postal_code_id_id'] = None
 
-    set_postal_code_ids(dataframe)
+    postal_code_ids: List[int] = get_postal_code_ids(dataframe)
+    dataframe['postal_code_id_id'] = postal_code_ids
 
     # get db connection
     db_connection_url = f"postgresql://{env('DB_USER')}:{env('DB_PASSWORD')}@{env('DB_HOST')}:{env('DB_PORT')}/{env('DB_NAME')}"
@@ -42,35 +43,35 @@ def update_resaletransactions_table_with_csv(table_name,csv_file) -> None:
 def set_primary_key(table_name:str, pk_column_name: str):
     pass
 
-def set_postal_code_ids(dataframe):
+def get_postal_code_ids(dataframe) -> List[int]:
+    final_array:List[int] = []
     for i in range(len(dataframe.index)):
         block:str = dataframe.at[i, 'block']
         street_name:str = dataframe.at[i, 'street_name']
+        print(f"row {i}, setting postal code key for {block} {street_name}...")
+        postalcode_id:int|None = None
         try:
             postalcode_object = PostalCodeAddress.objects.get(block=block, street_name=street_name)
-            postalcode:str = postalcode_object['postal_code']
-            dataframe.at[i, 'postal_code_id_id'] = postalcode
+            postalcode_id = getattr(postalcode_object, "id")
+            # dataframe.at[i, 'postal_code_id_id'] = postalcode
         except ObjectDoesNotExist as e:
+            print(f"postal code for {block} {street_name} does not exist. attempting to save...")
             try:
-                address:str = f"{block} {street_name}"
-                postalcode:str = get_postal_code_from_address(address)
-                dataframe.at[i, 'postal_code_id_id'] = postalcode
+                postalcode_object:PostalCodeAddress = create_postalcode_object(block=block, street_name=street_name)
+                PostalCodeAddress.objects.create(postalcode_object)
+                postalcode_id = getattr(postalcode_object, "id")
+                print(f"postal code id for {block} {street_name} is now {postalcode_id}")
+            except (AttributeError, ValidationError) as e:
+                print(f"Error creating '{block} {street_name}' postalcodeaddress object: {e}")
+                continue
             except Exception as e:
-                print(f"""
-                        Error for '{address}' in being registered as new address:
-                        {e}
-                    """)
+                print(f"Uncaught error for '{block} {street_name}' in being registered as new address: {e}")
                 continue
         except Exception as e:
-            print(f"""
-                    Error for reaching postal code table:
-                    {e}
-                """)
+            print(f"Uncaught error for getting postal code data: {e}")
             continue
-        
-
-        
-        
+        final_array.append(postalcode_id)
+    return final_array
 
 def import_from_csv_to_db(table_name, folderpath):
     conn = psycopg2.connect(host=env("DB_HOST"),dbname = env("DB_NAME"), user=env("DB_USER"), password=env("DB_PASSWORD"), port=env("DB_PORT"))
