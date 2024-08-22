@@ -21,8 +21,10 @@ def update_resaletransactions_table_with_csv(table_name,csv_file,column_to_add:s
     db_connection_url = f"postgresql://{env('DB_USER')}:{env('DB_PASSWORD')}@{env('DB_HOST')}:{env('DB_PORT')}/{env('DB_NAME')}"
     engine = create_engine(db_connection_url)
 
-    with engine.connect() as conn:
-        conn.execute(text(f"TRUNCATE TABLE {table_name};"))
+    connection = engine.connect()
+    connection.execute(text(f"TRUNCATE TABLE {table_name} RESTART IDENTITY CASCADE;"))
+    connection.commit()
+    connection.close()
 
     # use csv to update entire table
     dataframe.to_sql(table_name, engine, if_exists='append', index=False, chunksize=50000,
