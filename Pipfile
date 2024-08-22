@@ -16,6 +16,7 @@ requests = "*"
 ratelimit = "*"
 sqlalchemy = "*"
 pandas-geojson = "*"
+django-extensions = "*"
 
 [dev-packages]
 
