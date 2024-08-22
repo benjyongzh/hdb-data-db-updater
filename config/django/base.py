@@ -46,7 +46,8 @@ INSTALLED_APPS = [
     'debug_toolbar',
     'rest_framework',
     'django.contrib.gis',
-    'timestamps'
+    'timestamps',
+    'django_extensions'
 
 ]
 
