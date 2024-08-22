@@ -50,7 +50,17 @@ def set_primary_key(engine, table_name:str, pk_column_name: str):
 
 def set_foreign_key(engine, table_name:str, fk_column_name:str, fk_ref_table_name:str, fk_ref_col_name:str):
     with engine.connect() as conn:
-        conn.execute(f"ALTER TABLE {table_name} ADD FOREIGN KEY({fk_column_name}) REFERENCES {fk_ref_table_name}({fk_ref_col_name});")   
+        conn.execute(f"ALTER TABLE {table_name} ADD FOREIGN KEY({fk_column_name}) REFERENCES {fk_ref_table_name}({fk_ref_col_name});")
+
+def update_column_as_foreignkey_on_equal_column_values(table_name:str,
+                                                       related_table_name:str,
+                                                       fk_col:str,
+                                                       related_col_id:str,
+                                                       related_column_names:List[str]):
+    # cycle through object in related_table_name
+        # select all objects from table_name where related_coluumn_names matches object[i]'s
+        # use bulk_update to update their fk_col with related_col_id of object[i]
+    pass
 
 def get_postal_code_ids(dataframe) -> List[int]:
     final_array:List[int] = []
