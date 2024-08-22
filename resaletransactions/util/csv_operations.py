@@ -4,44 +4,51 @@ from common.util.get_latest_file_in_folder import get_latest_file_in_folder
 from config.env import env
 import pandas as pd
 from sqlalchemy import create_engine,types
+from sqlalchemy.sql import text
 from postalcodes.util.postal_codes import get_postal_code_from_address, create_postalcode_object
 from postalcodes.models import PostalCodeAddress
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from typing import List
 
 
-def update_resaletransactions_table_with_csv(table_name,csv_file) -> None:
+def update_resaletransactions_table_with_csv(table_name,csv_file,column_to_add:str) -> None:
     # pandas dataframe of file
     dataframe = pd.read_csv(csv_file)
-
-    postal_code_ids: List[int] = get_postal_code_ids(dataframe)
-    dataframe['postal_code_id_id'] = postal_code_ids
+    
+    dataframe[column_to_add] = None
 
     # get db connection
     db_connection_url = f"postgresql://{env('DB_USER')}:{env('DB_PASSWORD')}@{env('DB_HOST')}:{env('DB_PORT')}/{env('DB_NAME')}"
     engine = create_engine(db_connection_url)
 
-    # use csv to update entire table
-    dataframe.to_sql(table_name, engine, if_exists='replace', index=False, chunksize=50000,
-                     dtype={
-                         'month': types.VARCHAR(7), 
-                        'town': types.VARCHAR(100),
-                        'flat_type': types.VARCHAR(50),
-                        'block': types.VARCHAR(4),
-                        'street_name': types.VARCHAR(100),
-                        'storey_range': types.VARCHAR(10),
-                        'floor_area_sqm': types.DECIMAL(7,2),
-                        'flat_model': types.VARCHAR(50),
-                        'lease_commence_date': types.VARCHAR(4),
-                        'remaining_lease': types.VARCHAR(100),
-                        'resale_price': types.DECIMAL(12,2),
-                        'postal_code_id_id': types.BigInteger(),
-                        })
+    with engine.connect() as conn:
+        conn.execute(text(f"TRUNCATE TABLE {table_name};"))
 
-    # set_primary_key(table_name, "id")
-    
-def set_primary_key(table_name:str, pk_column_name: str):
-    pass
+    # use csv to update entire table
+    dataframe.to_sql(table_name, engine, if_exists='append', index=False, chunksize=50000,
+                    #  dtype={
+                    #      'month': types.VARCHAR(7), 
+                    #     'town': types.VARCHAR(100),
+                    #     'flat_type': types.VARCHAR(50),
+                    #     'block': types.VARCHAR(4),
+                    #     'street_name': types.VARCHAR(100),
+                    #     'storey_range': types.VARCHAR(10),
+                    #     'floor_area_sqm': types.DECIMAL(7,2),
+                    #     'flat_model': types.VARCHAR(50),
+                    #     'lease_commence_date': types.VARCHAR(4),
+                    #     'remaining_lease': types.VARCHAR(100),
+                    #     'resale_price': types.DECIMAL(12,2),
+                    #     'postal_code_id_id': types.BigInteger(),
+                    #     }
+                        )
+
+def set_primary_key(engine, table_name:str, pk_column_name: str):
+    with engine.connect() as conn:
+        conn.execute(f"ALTER TABLE {table_name} ADD PRIMARY KEY({pk_column_name});")
+
+def set_foreign_key(engine, table_name:str, fk_column_name:str, fk_ref_table_name:str, fk_ref_col_name:str):
+    with engine.connect() as conn:
+        conn.execute(f"ALTER TABLE {table_name} ADD FOREIGN KEY({fk_column_name}) REFERENCES {fk_ref_table_name}({fk_ref_col_name});")   
 
 def get_postal_code_ids(dataframe) -> List[int]:
     final_array:List[int] = []

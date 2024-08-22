@@ -14,7 +14,7 @@ class ResaleTransaction(models.Model):
     lease_commence_date = models.CharField(max_length=4)
     remaining_lease = models.CharField(max_length=100)
     resale_price = models.DecimalField(max_digits=12, decimal_places=2)
-    postal_code_id = models.ForeignKey(PostalCodeAddress, default=None, on_delete=models.PROTECT)
+    postal_code_id = models.ForeignKey(PostalCodeAddress, default=None, on_delete=models.PROTECT, null=True)
 
 
     def __str__(self):
