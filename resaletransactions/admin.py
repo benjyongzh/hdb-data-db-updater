@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.urls import path
 from django.shortcuts import render
 from resaletransactions.models import ResaleTransaction
-from resaletransactions.util.csv_operations import update_resaletransactions_table_with_csv,update_column_as_foreignkey_on_equal_column_values
+from resaletransactions.util.csv_operations import update_resaletransactions_table_with_csv,update_resaletransactions_foreignkey_on_postalcodes
 from common.forms import FileUploadForm, process_file_upload
 from common.util.utils import update_timestamps_table_lastupdated, get_table_lastupdated_datetime
 
@@ -42,12 +42,7 @@ class ResaleTransactionAdmin(admin.ModelAdmin):
 def upload_csv_file_impl(input_file):
     update_resaletransactions_table_with_csv("resaletransactions_resaletransaction", input_file, "postal_code_id_id")
 
-    update_column_as_foreignkey_on_equal_column_values(
-        table_name="resaletransactions_resaletransaction",
-        related_table_name="postalcodes_postalcodeaddress",
-        fk_col="postal_code_id_id",
-        related_col_id="id",
-        related_column_names=['block', 'street_name'])
+    update_resaletransactions_foreignkey_on_postalcodes(related_col_id="id")
         
     # update table timestamp
     return {'table_last_updated': update_timestamps_table_lastupdated("resaletransactions_resaletransaction")}

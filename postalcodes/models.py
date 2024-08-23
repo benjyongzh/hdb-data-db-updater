@@ -10,7 +10,6 @@ def postal_code_validation(value:str):
 class PostalCodeAddress(models.Model):
     block = models.CharField(max_length=4)
     street_name = models.CharField(max_length=100)
-    # postal_code = models.CharField(max_length=6)
     postal_code = models.CharField(validators=[postal_code_validation])
 
     def __str__(self):

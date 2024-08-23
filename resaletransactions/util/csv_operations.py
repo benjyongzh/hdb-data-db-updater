@@ -9,6 +9,7 @@ from postalcodes.util.postal_codes import get_postal_code_from_address, create_p
 from postalcodes.models import PostalCodeAddress
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from typing import List
+from resaletransactions.models import ResaleTransaction
 
 
 def update_resaletransactions_table_with_csv(table_name,csv_file,column_to_add:str) -> None:
@@ -52,15 +53,13 @@ def set_foreign_key(engine, table_name:str, fk_column_name:str, fk_ref_table_nam
     with engine.connect() as conn:
         conn.execute(f"ALTER TABLE {table_name} ADD FOREIGN KEY({fk_column_name}) REFERENCES {fk_ref_table_name}({fk_ref_col_name});")
 
-def update_column_as_foreignkey_on_equal_column_values(table_name:str,
-                                                       related_table_name:str,
-                                                       fk_col:str,
-                                                       related_col_id:str,
-                                                       related_column_names:List[str]):
-    # cycle through object in related_table_name
-        # select all objects from table_name where related_coluumn_names matches object[i]'s
+def update_resaletransactions_foreignkey_on_postalcodes(related_col_id:str):
+    # cycle through related_model objects
+    postalcodes_addresses = PostalCodeAddress.objects.all().values(related_col_id, "block", "street_name")
+    for item in postalcodes_addresses:
+        # select all objects from model where related_coluumn_names matches object[i]'s
         # use bulk_update to update their fk_col with related_col_id of object[i]
-    pass
+        ResaleTransaction.objects.filter(block=item["block"], street_name=item["street_name"]).update(postal_code_id_id=item[related_col_id])
 
 def get_postal_code_ids(dataframe) -> List[int]:
     final_array:List[int] = []
