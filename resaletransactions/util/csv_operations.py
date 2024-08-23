@@ -53,7 +53,7 @@ def set_foreign_key(engine, table_name:str, fk_column_name:str, fk_ref_table_nam
     with engine.connect() as conn:
         conn.execute(f"ALTER TABLE {table_name} ADD FOREIGN KEY({fk_column_name}) REFERENCES {fk_ref_table_name}({fk_ref_col_name});")
 
-def update_resaletransactions_foreignkey_on_postalcodes(related_col_id:str):
+def update_resaletransactions_foreignkey_on_postalcodes(related_col_id:str) -> None:
     # cycle through related_model objects
     postalcodes_addresses = PostalCodeAddress.objects.all().values(related_col_id, "block", "street_name")
     for item in postalcodes_addresses:
@@ -61,23 +61,23 @@ def update_resaletransactions_foreignkey_on_postalcodes(related_col_id:str):
         # use bulk_update to update their fk_col with related_col_id of object[i]
         ResaleTransaction.objects.filter(block=item["block"], street_name=item["street_name"]).update(postal_code_id_id=item[related_col_id])
 
-def get_postal_code_ids(dataframe) -> List[int]:
-    final_array:List[int] = []
-    for i in range(len(dataframe.index)):
-        block:str = dataframe.at[i, 'block']
-        street_name:str = dataframe.at[i, 'street_name']
-        print(f"row {i}, setting postal code key for {block} {street_name}...")
-        postalcode_id:int|None = None
+def update_postalcodes_from_empty_resaletransactions_postalcodes() -> None:
+    rows_to_update = ResaleTransaction.objects.filter(postal_code_id_id__isnull=True)
+    for row in rows_to_update:
+        block:str = row.values()['block']
+        street_name:str = row.values()['street_name']
+        print(f"setting postal code key for {block} {street_name}...")
         try:
             postalcode_object = PostalCodeAddress.objects.get(block=block, street_name=street_name)
             postalcode_id = getattr(postalcode_object, "id")
-            # dataframe.at[i, 'postal_code_id_id'] = postalcode
+            row.update(postal_code_id_id=postalcode_id)
         except ObjectDoesNotExist as e:
             print(f"postal code for {block} {street_name} does not exist. attempting to save...")
             try:
                 postalcode_object:PostalCodeAddress = create_postalcode_object(block=block, street_name=street_name)
                 PostalCodeAddress.objects.create(postalcode_object)
                 postalcode_id = getattr(postalcode_object, "id")
+                row.update(postal_code_id_id=postalcode_id)
                 print(f"postal code id for {block} {street_name} is now {postalcode_id}")
             except (AttributeError, ValidationError) as e:
                 print(f"Error creating '{block} {street_name}' postalcodeaddress object: {e}")
@@ -88,8 +88,6 @@ def get_postal_code_ids(dataframe) -> List[int]:
         except Exception as e:
             print(f"Uncaught error for getting postal code data: {e}")
             continue
-        final_array.append(postalcode_id)
-    return final_array
 
 def import_from_csv_to_db(table_name, folderpath):
     conn = psycopg2.connect(host=env("DB_HOST"),dbname = env("DB_NAME"), user=env("DB_USER"), password=env("DB_PASSWORD"), port=env("DB_PORT"))
