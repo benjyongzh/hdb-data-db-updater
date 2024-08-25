@@ -63,22 +63,22 @@ def update_resaletransactions_foreignkey_on_postalcodes(related_col_id:str) -> N
 
 def update_postalcodes_from_empty_resaletransactions_postalcodes() -> None:
     rows_to_update = ResaleTransaction.objects.filter(postal_code_id_id__isnull=True)
-    for row in rows_to_update:
-        block:str = getattr(row, "block")
-        street_name:str = getattr(row, "street_name")
-        print(f"setting postal code key for {block} {street_name}...")
+    for row in rows_to_update.iterator():
+        block:str = row.block
+        street_name:str = row.street_name
         try:
             postalcode_object = PostalCodeAddress.objects.get(block=block, street_name=street_name)
-            postalcode_id = getattr(postalcode_object, "id")
-            row.update(postal_code_id_id=postalcode_id)
+            row.postal_code_id_id = postalcode_object.id
+            row.save()
+            print(f"postal code id for {block} {street_name} exists as {postalcode_object.id}")
         except ObjectDoesNotExist as e:
             print(f"postal code for {block} {street_name} does not exist. attempting to save...")
             try:
                 postalcode_object:PostalCodeAddress = create_postalcode_object(block=block, street_name=street_name)
                 postalcode_object.save()
-                postalcode_id = getattr(postalcode_object, "id")
-                row.update(postal_code_id_id=postalcode_id)
-                print(f"postal code id for {block} {street_name} is now {postalcode_id}")
+                row.postal_code_id_id = postalcode_object.id
+                row.save()
+                print(f"postal code id for {block} {street_name} is now {postalcode_object.id}")
             except (AttributeError, ValidationError) as e:
                 print(f"Error creating '{block} {street_name}' postalcodeaddress object: {e}")
                 continue
