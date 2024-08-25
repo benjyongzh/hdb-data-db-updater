@@ -64,8 +64,8 @@ def update_resaletransactions_foreignkey_on_postalcodes(related_col_id:str) -> N
 def update_postalcodes_from_empty_resaletransactions_postalcodes() -> None:
     rows_to_update = ResaleTransaction.objects.filter(postal_code_id_id__isnull=True)
     for row in rows_to_update:
-        block:str = row.values()['block']
-        street_name:str = row.values()['street_name']
+        block:str = getattr(row, "block")
+        street_name:str = getattr(row, "street_name")
         print(f"setting postal code key for {block} {street_name}...")
         try:
             postalcode_object = PostalCodeAddress.objects.get(block=block, street_name=street_name)
@@ -75,7 +75,7 @@ def update_postalcodes_from_empty_resaletransactions_postalcodes() -> None:
             print(f"postal code for {block} {street_name} does not exist. attempting to save...")
             try:
                 postalcode_object:PostalCodeAddress = create_postalcode_object(block=block, street_name=street_name)
-                PostalCodeAddress.objects.create(postalcode_object)
+                postalcode_object.save()
                 postalcode_id = getattr(postalcode_object, "id")
                 row.update(postal_code_id_id=postalcode_id)
                 print(f"postal code id for {block} {street_name} is now {postalcode_id}")
