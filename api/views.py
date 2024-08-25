@@ -6,16 +6,16 @@ from .serializers import ResaleTransactionSerializer, PostalCodeAddressSerialize
 from django.db.models import Max
 
 class get_all_resale_prices(ListAPIView):
-    queryset = ResaleTransaction.objects.all()
+    queryset = ResaleTransaction.objects.all().order_by("id")
     serializer_class = ResaleTransactionSerializer
 
 class get_all_postal_codes(ListAPIView):
-    queryset = PostalCodeAddress.objects.all()
+    queryset = PostalCodeAddress.objects.all().order_by("id")
     serializer_class = PostalCodeAddressSerializer
 
 
 class get_all_building_polygons(ListAPIView):
-    queryset = BuildingGeometryPolygon.objects.all()
+    queryset = BuildingGeometryPolygon.objects.all().order_by("id")
     serializer_class = BuildingGeometryPolygonSerializer
 
 # return the average price of a block within a past given timeframe
