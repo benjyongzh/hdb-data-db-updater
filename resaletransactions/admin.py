@@ -22,6 +22,12 @@ class ResaleTransactionAdmin(admin.ModelAdmin):
 
     def upload_csv(self, request):
         if request.method == "POST":
+            # create table for tasks (id, application:str, description:str, status:str, last-updated:datetime)
+            # create a task scheduler core application. with views and urls to activate certain tasks
+            
+            # create task object with id
+            # make upload_csv_file_impl update task object
+
             return process_file_upload(
                 request,
                 request_file_key='input_file',
@@ -42,7 +48,7 @@ class ResaleTransactionAdmin(admin.ModelAdmin):
 def upload_csv_file_impl(input_file):
     update_resaletransactions_table_with_csv("resaletransactions_resaletransaction", input_file, "postal_code_id_id")
 
-    update_resaletransactions_foreignkey_on_postalcodes(related_col_id="id")
+    update_resaletransactions_foreignkey_on_postalcodes()
 
     update_postalcodes_from_empty_resaletransactions_postalcodes()
         
