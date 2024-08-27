@@ -18,6 +18,8 @@ def update_resaletransactions_table_with_csv(table_name,csv_file,column_to_add:s
     
     dataframe[column_to_add] = None
 
+    # add id column at start. see if can update new rows only, instead of completely redoing table
+
     # get db connection
     db_connection_url = f"postgresql://{env('DB_USER')}:{env('DB_PASSWORD')}@{env('DB_HOST')}:{env('DB_PORT')}/{env('DB_NAME')}"
     engine = create_engine(db_connection_url)
@@ -28,22 +30,7 @@ def update_resaletransactions_table_with_csv(table_name,csv_file,column_to_add:s
     connection.close()
 
     # use csv to update entire table
-    dataframe.to_sql(table_name, engine, if_exists='append', index=False, chunksize=50000,
-                    #  dtype={
-                    #      'month': types.VARCHAR(7), 
-                    #     'town': types.VARCHAR(100),
-                    #     'flat_type': types.VARCHAR(50),
-                    #     'block': types.VARCHAR(4),
-                    #     'street_name': types.VARCHAR(100),
-                    #     'storey_range': types.VARCHAR(10),
-                    #     'floor_area_sqm': types.DECIMAL(7,2),
-                    #     'flat_model': types.VARCHAR(50),
-                    #     'lease_commence_date': types.VARCHAR(4),
-                    #     'remaining_lease': types.VARCHAR(100),
-                    #     'resale_price': types.DECIMAL(12,2),
-                    #     'postal_code_id_id': types.BigInteger(),
-                    #     }
-                        )
+    dataframe.to_sql(table_name, engine, if_exists='append', index=False, chunksize=50000)
 
 def set_primary_key(engine, table_name:str, pk_column_name: str):
     with engine.connect() as conn:
@@ -59,8 +46,10 @@ def update_resaletransactions_foreignkey_on_postalcodes() -> None:
     for item in postalcodes_addresses:
         # select all objects from model where related_coluumn_names matches object[i]'s. update their fk_col with related_col_id of object[i]
         ResaleTransaction.objects.filter(block=item.block, street_name=item.street_name).update(postal_code_id_id=item)
+        # * see if can use prefetch_related() or bulk_update/create
 
 def update_postalcodes_from_empty_resaletransactions_postalcodes() -> None:
+    # * check if bulk update is possible
     rows_to_update = ResaleTransaction.objects.filter(postal_code_id_id__isnull=True)
     for row in rows_to_update.iterator():
         block:str = row.block
@@ -68,7 +57,6 @@ def update_postalcodes_from_empty_resaletransactions_postalcodes() -> None:
         try:
             postalcode_object = PostalCodeAddress.objects.get(block=block, street_name=street_name)
             row.postal_code_id_id = postalcode_object
-            row.save()
             print(f"postal code id for {block} {street_name} exists as {postalcode_object})")
         except ObjectDoesNotExist as e:
             print(f"postal code for {block} {street_name} does not exist. attempting to save...")
@@ -76,7 +64,6 @@ def update_postalcodes_from_empty_resaletransactions_postalcodes() -> None:
                 postalcode_object:PostalCodeAddress = create_postalcode_object(block=block, street_name=street_name)
                 postalcode_object.save()
                 row.postal_code_id_id = postalcode_object
-                row.save()
                 print(f"postal code id for {block} {street_name} is now ({postalcode_object})")
             except (AttributeError, ValidationError) as e:
                 print(f"Error creating '{block} {street_name}' postalcodeaddress object: {e}")
@@ -87,6 +74,7 @@ def update_postalcodes_from_empty_resaletransactions_postalcodes() -> None:
         except Exception as e:
             print(f"Uncaught error for getting postal code data: {e}")
             continue
+    ResaleTransaction.objects.bulk_update(rows_to_update, ['postal_code_id_id'], batch_size=50000)
 
 def import_from_csv_to_db(table_name, folderpath):
     conn = psycopg2.connect(host=env("DB_HOST"),dbname = env("DB_NAME"), user=env("DB_USER"), password=env("DB_PASSWORD"), port=env("DB_PORT"))
