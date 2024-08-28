@@ -38,29 +38,28 @@ def set_foreign_key(engine, table_name:str, fk_column_name:str, fk_ref_table_nam
 
 def update_resaletransactions_foreignkey_on_postalcodes() -> None:
     # cycle through related_model objects
-    postalcodes_addresses = PostalCodeAddress.objects.all()
+    postalcodes_addresses = PostalCodeAddress.objects.values()
     for item in postalcodes_addresses:
         # select all objects from model where related_coluumn_names matches object[i]'s. update their fk_col with related_col_id of object[i]
-        ResaleTransaction.objects.filter(block=item.block, street_name=item.street_name).update(postal_code_id_id=item)
-        # * see if can use prefetch_related() or bulk_update/create
+        ResaleTransaction.objects.filter(block=item['block'], street_name=item['street_name']).update(postal_code_id_id=item['id'])
 
 def update_postalcodes_from_empty_resaletransactions_postalcodes() -> None:
     # * check if bulk update is possible
     rows_to_update = ResaleTransaction.objects.filter(postal_code_id_id__isnull=True)
-    for row in rows_to_update.iterator():
+    for row in rows_to_update:
         block:str = row.block
         street_name:str = row.street_name
         try:
             postalcode_object = PostalCodeAddress.objects.get(block=block, street_name=street_name)
-            row.postal_code_id_id = postalcode_object
-            print(f"postal code id for {block} {street_name} exists as {postalcode_object})")
+            row.postal_code_id_id = postalcode_object.id
+            print(f"postal code id for {block} {street_name} exists as {postalcode_object.id})")
         except ObjectDoesNotExist as e:
             print(f"postal code for {block} {street_name} does not exist. attempting to save...")
             try:
                 postalcode_object:PostalCodeAddress = create_postalcode_object(block=block, street_name=street_name)
                 postalcode_object.save()
-                row.postal_code_id_id = postalcode_object
-                print(f"postal code id for {block} {street_name} is now ({postalcode_object})")
+                row.postal_code_id_id = postalcode_object.id
+                print(f"postal code id for {block} {street_name} is now ({postalcode_object.id})")
             except (AttributeError, ValidationError) as e:
                 print(f"Error creating '{block} {street_name}' postalcodeaddress object: {e}")
                 continue

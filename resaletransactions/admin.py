@@ -48,9 +48,11 @@ class ResaleTransactionAdmin(admin.ModelAdmin):
 def upload_csv_file_impl(input_file):
     update_resaletransactions_table_with_csv("resaletransactions_resaletransaction", input_file, "tmp_table")
 
-    update_resaletransactions_foreignkey_on_postalcodes()
+    rows_to_update = ResaleTransaction.objects.filter(postal_code_id_id__isnull=True)
+    if len(rows_to_update) > 50000:
+        update_resaletransactions_foreignkey_on_postalcodes()
 
-    # update_postalcodes_from_empty_resaletransactions_postalcodes()
+    update_postalcodes_from_empty_resaletransactions_postalcodes()
         
     # update table timestamp
     return {'table_last_updated': update_timestamps_table_lastupdated("resaletransactions_resaletransaction")}
