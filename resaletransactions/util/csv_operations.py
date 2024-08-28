@@ -12,25 +12,21 @@ from typing import List
 from resaletransactions.models import ResaleTransaction
 
 
-def update_resaletransactions_table_with_csv(table_name,csv_file,column_to_add:str) -> None:
-    # pandas dataframe of file
-    dataframe = pd.read_csv(csv_file)
-    
-    dataframe[column_to_add] = None
-
-    # add id column at start. see if can update new rows only, instead of completely redoing table
+def update_resaletransactions_table_with_csv(table_name,csv_file,tmp_table_name:str) -> None:
 
     # get db connection
     db_connection_url = f"postgresql://{env('DB_USER')}:{env('DB_PASSWORD')}@{env('DB_HOST')}:{env('DB_PORT')}/{env('DB_NAME')}"
     engine = create_engine(db_connection_url)
 
+    # copy pandas dataframe to temp table. csv file must have id column as primary key
+    dataframe = pd.read_csv(csv_file)
+    dataframe.to_sql(tmp_table_name, engine, if_exists='replace', index=False, chunksize=50000)
+
     connection = engine.connect()
-    connection.execute(text(f"TRUNCATE TABLE {table_name} RESTART IDENTITY CASCADE;"))
+    connection.execute(text(f"INSERT INTO {table_name} SELECT * FROM {tmp_table_name} ON CONFLICT DO NOTHING;"))
+    connection.execute(text(f"DROP TABLE {tmp_table_name};"))
     connection.commit()
     connection.close()
-
-    # use csv to update entire table
-    dataframe.to_sql(table_name, engine, if_exists='append', index=False, chunksize=50000)
 
 def set_primary_key(engine, table_name:str, pk_column_name: str):
     with engine.connect() as conn:
