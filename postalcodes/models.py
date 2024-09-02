@@ -8,8 +8,8 @@ def postal_code_validation(value:str):
 
 # Create your models here.
 class PostalCodeAddress(models.Model):
-    block = models.CharField(max_length=4)
-    street_name = models.CharField(max_length=100)
+    block = models.CharField(max_length=4, db_index=True)
+    street_name = models.CharField(max_length=100, db_index=True)
     postal_code = models.CharField(validators=[postal_code_validation])
 
     def __str__(self):
