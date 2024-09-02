@@ -10,6 +10,7 @@ from postalcodes.models import PostalCodeAddress
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from typing import List
 from resaletransactions.models import ResaleTransaction
+from django.db import transaction
 
 
 def update_resaletransactions_table_with_csv(table_name,csv_file,tmp_table_name:str) -> None:
@@ -36,22 +37,39 @@ def set_foreign_key(engine, table_name:str, fk_column_name:str, fk_ref_table_nam
     with engine.connect() as conn:
         conn.execute(f"ALTER TABLE {table_name} ADD FOREIGN KEY({fk_column_name}) REFERENCES {fk_ref_table_name}({fk_ref_col_name});")
 
-def update_resaletransactions_foreignkey_on_postalcodes() -> None:
+def update_resaletransactions_foreignkey_on_postalcodes(batch_size) -> None:
     # cycle through related_model objects
     rows_to_update = ResaleTransaction.objects.filter(postal_code_id_id__isnull=True)
 
-    # when too many unknowns, use postalcode table for batch updating
-    if len(rows_to_update) > 10000:
-        # postalcodes_addresses = PostalCodeAddress.objects.values()
-        postalcodes_addresses = PostalCodeAddress.objects.values()
-        for item in postalcodes_addresses.iterator():
-            # select all objects from model where related_coluumn_names matches object[i]'s. update their fk_col with related_col_id of object[i]
-            rows_to_update.filter(block=item['block'], street_name=item['street_name']).update(postal_code_id_id=item['id'])
-            print(f"Updated resale transactions' postalcode for {item['block']} {item['street_name']}")
+    postalcodes_addresses = PostalCodeAddress.objects.all()
 
-    rows_still_null = rows_to_update.filter(postal_code_id_id__isnull=True)
-    if len(rows_still_null) > 0:
-        update_postalcodes_from_empty_resaletransactions_postalcodes(rows_still_null)
+    # get key pairs for block + street_name versus ID
+    block_streetname_to_postalcode = {
+        (entry.block, entry.street_name): entry.id
+        for entry in postalcodes_addresses
+    }
+
+    for offset in range(0, len(rows_to_update), batch_size):
+        # Fetch a batch of TableA records
+        batch = rows_to_update[offset:offset + batch_size]
+        
+        # Collect instances to update
+        to_update = []
+        for resaletransaction_row in batch:
+            key = (resaletransaction_row.block, resaletransaction_row.street_name)
+            if key in block_streetname_to_postalcode:
+                resaletransaction_row.postal_code_id_id = block_streetname_to_postalcode[key]
+                to_update.append(resaletransaction_row)
+                print(f"To update resale transactions' postalcode for {resaletransaction_row.block} {resaletransaction_row.street_name} with foreign key {block_streetname_to_postalcode[key]}")
+
+        # Perform the bulk update for the batch
+        if to_update:
+            with transaction.atomic():
+                ResaleTransaction.objects.bulk_update(to_update, ['postal_code_id_id'])
+
+    # rows_still_null = rows_to_update.filter(postal_code_id_id__isnull=True)
+    # if len(rows_still_null) > 0:
+        # update_postalcodes_from_empty_resaletransactions_postalcodes(rows_still_null)
 
 def update_postalcodes_from_empty_resaletransactions_postalcodes(rows_to_update) -> None:
     for row in rows_to_update:
