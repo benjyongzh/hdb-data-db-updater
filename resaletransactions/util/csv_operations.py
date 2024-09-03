@@ -39,7 +39,7 @@ def set_foreign_key(engine, table_name:str, fk_column_name:str, fk_ref_table_nam
 
 def update_resaletransactions_foreignkey_on_postalcodes(batch_size) -> None:
     # cycle through related_model objects
-    rows_to_update = ResaleTransaction.objects.filter(postal_code_id_id__isnull=True)
+    rows_to_update = ResaleTransaction.objects.filter(postal_code_key_id__isnull=True)
 
     postalcodes_addresses = PostalCodeAddress.objects.all()
 
@@ -58,17 +58,17 @@ def update_resaletransactions_foreignkey_on_postalcodes(batch_size) -> None:
         for resaletransaction_row in batch:
             key = (resaletransaction_row.block, resaletransaction_row.street_name)
             if key in block_streetname_to_postalcode:
-                resaletransaction_row.postal_code_id_id = block_streetname_to_postalcode[key]
+                resaletransaction_row.postal_code_key_id = block_streetname_to_postalcode[key]
                 to_update.append(resaletransaction_row)
                 # print(f"To update resale transactions' postalcode for {resaletransaction_row.block} {resaletransaction_row.street_name} with foreign key {block_streetname_to_postalcode[key]}")
 
         # Perform the bulk update for the batch
         if to_update:
-            print(f"Updating postalcode foreign keys of resale transactions: index {offset} to {offset + batch_size}...")
+            # print(f"Updating postalcode foreign keys of resale transactions: index {offset} to {offset + batch_size}...")
             with transaction.atomic():
-                ResaleTransaction.objects.bulk_update(to_update, ['postal_code_id_id'])
+                ResaleTransaction.objects.bulk_update(to_update, ['postal_code_key_id'])
 
-    rows_still_null = rows_to_update.filter(postal_code_id_id__isnull=True)
+    rows_still_null = rows_to_update.filter(postal_code_key_id__isnull=True)
     if len(rows_still_null) > 0:
         update_postalcodes_from_empty_resaletransactions_postalcodes(rows_still_null)
 
@@ -78,14 +78,14 @@ def update_postalcodes_from_empty_resaletransactions_postalcodes(rows_to_update)
         street_name:str = row.street_name
         try:
             postalcode_object = PostalCodeAddress.objects.get(block=block, street_name=street_name)
-            row.postal_code_id_id = postalcode_object.id
+            row.postal_code_key_id = postalcode_object.id
             print(f"postal code id for {block} {street_name} exists as {postalcode_object.id}")
         except ObjectDoesNotExist as e:
             print(f"postal code for {block} {street_name} does not exist. attempting to save...")
             try:
                 postalcode_object:PostalCodeAddress = create_postalcode_object(block=block, street_name=street_name)
                 postalcode_object.save()
-                row.postal_code_id_id = postalcode_object.id
+                row.postal_code_key_id = postalcode_object.id
                 print(f"postal code id for {block} {street_name} is now ({postalcode_object.id})")
             except (AttributeError, ValidationError) as e:
                 print(f"Error creating '{block} {street_name}' postalcodeaddress object: {e}")
@@ -96,7 +96,7 @@ def update_postalcodes_from_empty_resaletransactions_postalcodes(rows_to_update)
         except Exception as e:
             print(f"Uncaught error for getting postal code data: {e}")
             continue
-    ResaleTransaction.objects.bulk_update(rows_to_update, ['postal_code_id_id'], batch_size=50000)
+    ResaleTransaction.objects.bulk_update(rows_to_update, ['postal_code_key_id'], batch_size=50000)
 
 def import_from_csv_to_db(table_name, folderpath):
     conn = psycopg2.connect(host=env("DB_HOST"),dbname = env("DB_NAME"), user=env("DB_USER"), password=env("DB_PASSWORD"), port=env("DB_PORT"))
