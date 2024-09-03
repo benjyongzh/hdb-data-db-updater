@@ -68,9 +68,9 @@ def update_resaletransactions_foreignkey_on_postalcodes(batch_size) -> None:
             with transaction.atomic():
                 ResaleTransaction.objects.bulk_update(to_update, ['postal_code_id_id'])
 
-    # rows_still_null = rows_to_update.filter(postal_code_id_id__isnull=True)
-    # if len(rows_still_null) > 0:
-    #     update_postalcodes_from_empty_resaletransactions_postalcodes(rows_still_null)
+    rows_still_null = rows_to_update.filter(postal_code_id_id__isnull=True)
+    if len(rows_still_null) > 0:
+        update_postalcodes_from_empty_resaletransactions_postalcodes(rows_still_null)
 
 def update_postalcodes_from_empty_resaletransactions_postalcodes(rows_to_update) -> None:
     for row in rows_to_update:
