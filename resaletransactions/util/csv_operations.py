@@ -60,16 +60,17 @@ def update_resaletransactions_foreignkey_on_postalcodes(batch_size) -> None:
             if key in block_streetname_to_postalcode:
                 resaletransaction_row.postal_code_id_id = block_streetname_to_postalcode[key]
                 to_update.append(resaletransaction_row)
-                print(f"To update resale transactions' postalcode for {resaletransaction_row.block} {resaletransaction_row.street_name} with foreign key {block_streetname_to_postalcode[key]}")
+                # print(f"To update resale transactions' postalcode for {resaletransaction_row.block} {resaletransaction_row.street_name} with foreign key {block_streetname_to_postalcode[key]}")
 
         # Perform the bulk update for the batch
         if to_update:
+            print(f"Updating postalcode foreign keys of resale transactions: index {offset} to {offset + batch_size}...")
             with transaction.atomic():
                 ResaleTransaction.objects.bulk_update(to_update, ['postal_code_id_id'])
 
     # rows_still_null = rows_to_update.filter(postal_code_id_id__isnull=True)
     # if len(rows_still_null) > 0:
-        # update_postalcodes_from_empty_resaletransactions_postalcodes(rows_still_null)
+    #     update_postalcodes_from_empty_resaletransactions_postalcodes(rows_still_null)
 
 def update_postalcodes_from_empty_resaletransactions_postalcodes(rows_to_update) -> None:
     for row in rows_to_update:
