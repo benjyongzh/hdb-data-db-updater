@@ -7,7 +7,7 @@ from postalcodes.util.parse_geojson import import_new_geojson_features_into_tabl
 from postalcodes.util.postal_codes import update_postalcode_address_table
 from rest_framework import status
 from django.http import JsonResponse
-from common.util.utils import update_timestamps_table_lastupdated, get_table_lastupdated_datetime
+from common.util.utils import update_timestamps_table_lastupdated, get_table_lastupdated_datetime,update_tableA_FK_match_with_tableB_PK_on_matching_columns
 
 # Register your models here.
 @admin.register(PostalCodeAddress)
@@ -77,6 +77,17 @@ class BuildingGeometryPolygonAdmin(admin.ModelAdmin):
         
 def upload_geojson_impl(geojson_file):
     import_new_geojson_features_into_table(BuildingGeometryPolygon, geojson_file)
+
+    update_tableA_FK_match_with_tableB_PK_on_matching_columns(
+        table_a_name="postalcodes_buildinggeometrypolygon",
+        table_b_name="postalcodes_postalcodeaddress",
+        a_foreignkey_column_name="postal_code_key_id",
+        b_primary_key_column_name="id",
+        table_a_to_table_b_columns={
+            "block": "block",
+            "postal_code": "postal_code"
+        }
+    )
         
     # update table timestamp    
     return {'table_last_updated': update_timestamps_table_lastupdated("postalcodes_buildinggeometrypolygon")}

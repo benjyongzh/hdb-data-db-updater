@@ -35,6 +35,8 @@ def import_new_geojson_features_into_table(model_object, geojson_file) -> None:
 
     # # iterate through every feature
     features = gj['features']
+
+    polygons = []
     # for each feature, get postalcode
     for feature_index,feature in enumerate(features):
         try:
@@ -76,18 +78,14 @@ def import_new_geojson_features_into_table(model_object, geojson_file) -> None:
         #     "postal_code": postal_code,
         #     "building_polygon": final_geom
         # }
-        try:
-            # BuildingGeometryPolygon.objects.create(**new_polygon)
-            BuildingGeometryPolygon.objects.create(
+
+        polygons.append(BuildingGeometryPolygon(
                 block=block_number,
                 postal_code=postal_code,
                 building_polygon=final_geom
-            )
-        except (TypeError, ValueError, IndexError) as e:
-            print(f"""
-                    Error for feature {feature_index} (block {block_number}, postal code {postal_code}) in adding Polygon to database:
-                    {e}
-                """)
+            ))
+        
+    BuildingGeometryPolygon.objects.bulk_create(polygons)
 
 def remove_z_from_geom_coordinates(coords):
     arr = coords[0]
