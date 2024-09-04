@@ -10,7 +10,7 @@ from postalcodes.models import PostalCodeAddress
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from typing import List
 from resaletransactions.models import ResaleTransaction
-from django.db import transaction
+from django.db import transaction, connection
 
 
 def update_resaletransactions_table_with_csv(table_name,csv_file,tmp_table_name:str) -> None:
@@ -36,6 +36,16 @@ def set_primary_key(engine, table_name:str, pk_column_name: str):
 def set_foreign_key(engine, table_name:str, fk_column_name:str, fk_ref_table_name:str, fk_ref_col_name:str):
     with engine.connect() as conn:
         conn.execute(f"ALTER TABLE {table_name} ADD FOREIGN KEY({fk_column_name}) REFERENCES {fk_ref_table_name}({fk_ref_col_name});")
+
+def update_tableA_FK_match_with_tableB_PK_on_matching_columns(table_a_name:str, table_b_name:str,a_foreignkey_column_name:str, b_primary_key_column_name:str, matching_column_a_name:str,matching_column_b_name:str,):
+    with connection.cursor() as cursor:
+        cursor.execute(f"""
+            UPDATE {table_a_name}
+            SET {a_foreignkey_column_name} = b.{b_primary_key_column_name}
+            FROM {table_b_name} b
+            WHERE {table_a_name}.{matching_column_a_name} = b.{matching_column_a_name}
+            AND {table_a_name}.{matching_column_b_name} = b.{matching_column_b_name};
+        """)
 
 def update_resaletransactions_foreignkey_on_postalcodes(batch_size) -> None:
     # cycle through related_model objects

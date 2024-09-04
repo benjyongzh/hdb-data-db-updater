@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.urls import path
 from django.shortcuts import render
 from resaletransactions.models import ResaleTransaction
-from resaletransactions.util.csv_operations import update_resaletransactions_table_with_csv,update_resaletransactions_foreignkey_on_postalcodes
+from resaletransactions.util.csv_operations import update_resaletransactions_table_with_csv,update_tableA_FK_match_with_tableB_PK_on_matching_columns,update_postalcodes_from_empty_resaletransactions_postalcodes
 from common.forms import FileUploadForm, process_file_upload
 from common.util.utils import update_timestamps_table_lastupdated, get_table_lastupdated_datetime
 
@@ -48,7 +48,17 @@ class ResaleTransactionAdmin(admin.ModelAdmin):
 def upload_csv_file_impl(input_file):
     update_resaletransactions_table_with_csv("resaletransactions_resaletransaction", input_file, "tmp_table")
 
-    update_resaletransactions_foreignkey_on_postalcodes(batch_size=10000)
-        
+    update_tableA_FK_match_with_tableB_PK_on_matching_columns(
+        table_a_name="resaletransactions_resaletransaction",
+        table_b_name="postalcodes_postalcodeaddress",
+        a_foreignkey_column_name="postal_code_key_id",
+        b_primary_key_column_name="id",
+        matching_column_a_name="block",
+        matching_column_b_name="street_name")
+    
+    rows_still_null = ResaleTransaction.objects.filter(postal_code_key_id__isnull=True)
+    if len(rows_still_null) > 0:
+        update_postalcodes_from_empty_resaletransactions_postalcodes(rows_still_null)
+    
     # update table timestamp
     return {'table_last_updated': update_timestamps_table_lastupdated("resaletransactions_resaletransaction")}
