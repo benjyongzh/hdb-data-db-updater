@@ -22,8 +22,8 @@ class PostalCodeAddress(models.Model):
         return f"{self.block} {self.street_name}"
 
 class BuildingGeometryPolygon(models.Model):
-    block = models.CharField(max_length=4)
-    postal_code = models.CharField(validators=[postal_code_validation])
+    block = models.CharField(max_length=4, db_index=True)
+    postal_code = models.CharField(validators=[postal_code_validation], db_index=True)
     postal_code_key = models.ForeignKey(PostalCodeAddress, default=None, on_delete=models.PROTECT, null=True)
     building_polygon = models.PolygonField()
 
