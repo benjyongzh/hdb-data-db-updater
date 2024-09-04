@@ -53,8 +53,10 @@ def upload_csv_file_impl(input_file):
         table_b_name="postalcodes_postalcodeaddress",
         a_foreignkey_column_name="postal_code_key_id",
         b_primary_key_column_name="id",
-        matching_column_a_name="block",
-        matching_column_b_name="street_name")
+        table_a_to_table_b_columns={
+            "block": "block",
+            "street_name": "street_name"
+        })
     
     rows_still_null = ResaleTransaction.objects.filter(postal_code_key_id__isnull=True)
     if len(rows_still_null) > 0:

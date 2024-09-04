@@ -37,14 +37,26 @@ def set_foreign_key(engine, table_name:str, fk_column_name:str, fk_ref_table_nam
     with engine.connect() as conn:
         conn.execute(f"ALTER TABLE {table_name} ADD FOREIGN KEY({fk_column_name}) REFERENCES {fk_ref_table_name}({fk_ref_col_name});")
 
-def update_tableA_FK_match_with_tableB_PK_on_matching_columns(table_a_name:str, table_b_name:str,a_foreignkey_column_name:str, b_primary_key_column_name:str, matching_column_a_name:str,matching_column_b_name:str,):
+def update_tableA_FK_match_with_tableB_PK_on_matching_columns(table_a_name:str, table_b_name:str,a_foreignkey_column_name:str, b_primary_key_column_name:str, **kwargs):
+
+    column_names = kwargs.get('table_a_to_table_b_columns', {})
+
+    if not column_names:
+        raise ValueError("'table_a_to_table_b_columns' must be provided")
+
+    # Construct the WHERE clause for the SQL query
+    where_clause_parts = []
+    for table_a_col, table_b_col in column_names.items():
+        where_clause_parts.append(f"{table_a_name}.{table_a_col} = b.{table_b_col}")
+    where_clause = " AND ".join(where_clause_parts)
+
+    # run query
     with connection.cursor() as cursor:
         cursor.execute(f"""
             UPDATE {table_a_name}
             SET {a_foreignkey_column_name} = b.{b_primary_key_column_name}
             FROM {table_b_name} b
-            WHERE {table_a_name}.{matching_column_a_name} = b.{matching_column_a_name}
-            AND {table_a_name}.{matching_column_b_name} = b.{matching_column_b_name};
+            WHERE {where_clause}
         """)
 
 def update_resaletransactions_foreignkey_on_postalcodes(batch_size) -> None:
