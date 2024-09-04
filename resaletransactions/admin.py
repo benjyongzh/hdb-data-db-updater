@@ -2,9 +2,9 @@ from django.contrib import admin
 from django.urls import path
 from django.shortcuts import render
 from resaletransactions.models import ResaleTransaction
-from resaletransactions.util.csv_operations import update_resaletransactions_table_with_csv,update_tableA_FK_match_with_tableB_PK_on_matching_columns,update_postalcodes_from_empty_resaletransactions_postalcodes
+from resaletransactions.util.csv_operations import update_resaletransactions_table_with_csv,update_postalcodes_from_empty_resaletransactions_postalcodes
 from common.forms import FileUploadForm, process_file_upload
-from common.util.utils import update_timestamps_table_lastupdated, get_table_lastupdated_datetime
+from common.util.utils import update_timestamps_table_lastupdated, get_table_lastupdated_datetime, update_tableA_FK_match_with_tableB_PK_on_matching_columns
 
 # Register your models here.
 @admin.register(ResaleTransaction)
