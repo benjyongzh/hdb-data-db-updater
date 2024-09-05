@@ -8,6 +8,8 @@ from postalcodes.util.postal_codes import update_postalcode_address_table
 from rest_framework import status
 from django.http import JsonResponse
 from common.util.utils import update_timestamps_table_lastupdated, get_table_lastupdated_datetime,update_tableA_FK_match_with_tableB_PK_on_matching_columns
+from celery import shared_task
+from celery_progress.backend import ProgressRecorder
 
 # Register your models here.
 @admin.register(PostalCodeAddress)
@@ -75,8 +77,15 @@ class BuildingGeometryPolygonAdmin(admin.ModelAdmin):
             }
             return render(request, "admin/import_file.html", context=form_context)
         
-def upload_geojson_impl(geojson_file):
+@shared_task(bind=True)
+def upload_geojson_impl(self, geojson_file):
+    progress_recorder = ProgressRecorder(self)
+
+    progress_recorder.set_progress(1, 3, description="Processing uploaded Geojson file...")
+
     import_new_geojson_features_into_table(BuildingGeometryPolygon, geojson_file)
+
+    progress_recorder.set_progress(2, 3, description="Updating Foreign Keys...")
 
     update_tableA_FK_match_with_tableB_PK_on_matching_columns(
         table_a_name="postalcodes_buildinggeometrypolygon",
@@ -88,6 +97,9 @@ def upload_geojson_impl(geojson_file):
             "postal_code": "postal_code"
         }
     )
+
+    progress_recorder.set_progress(3, 3, description="Updating timestamp of last update of buildinggeometrypolygon table...")
         
     # update table timestamp    
-    return {'table_last_updated': update_timestamps_table_lastupdated("postalcodes_buildinggeometrypolygon")}
+    # return {'table_last_updated': update_timestamps_table_lastupdated("postalcodes_buildinggeometrypolygon")}
+    update_timestamps_table_lastupdated("postalcodes_buildinggeometrypolygon")

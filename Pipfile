@@ -17,6 +17,9 @@ ratelimit = "*"
 sqlalchemy = "*"
 pandas-geojson = "*"
 django-extensions = "*"
+celery = "*"
+redis = "*"
+celery-progress = "*"
 
 [dev-packages]
 
