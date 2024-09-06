@@ -5,6 +5,8 @@ from resaletransactions.models import ResaleTransaction
 from resaletransactions.util.csv_operations import update_resaletransactions_table_with_csv,update_postalcodes_from_empty_resaletransactions_postalcodes
 from common.forms import FileUploadForm, process_file_upload
 from common.util.utils import update_timestamps_table_lastupdated, get_table_lastupdated_datetime, update_tableA_FK_match_with_tableB_PK_on_matching_columns
+from celery import shared_task
+from celery_progress.backend import ProgressRecorder
 
 # Register your models here.
 @admin.register(ResaleTransaction)
@@ -45,8 +47,15 @@ class ResaleTransactionAdmin(admin.ModelAdmin):
             }
             return render(request, "admin/import_file.html", context=form_context)
 
-def upload_csv_file_impl(input_file):
+@shared_task(bind=True)
+def upload_csv_file_impl(self,input_file):
+    progress_recorder = ProgressRecorder(self)
+
+    progress_recorder.set_progress(1, 3, description="Processing uploaded csv file...")
+
     update_resaletransactions_table_with_csv("resaletransactions_resaletransaction", input_file, "tmp_table")
+
+    progress_recorder.set_progress(2, 3, description="Updating foreign keys...")
 
     update_tableA_FK_match_with_tableB_PK_on_matching_columns(
         table_a_name="resaletransactions_resaletransaction",
