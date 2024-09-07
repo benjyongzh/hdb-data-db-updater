@@ -51,11 +51,11 @@ class ResaleTransactionAdmin(admin.ModelAdmin):
 def upload_csv_file_impl(self,input_file):
     progress_recorder = ProgressRecorder(self)
 
-    progress_recorder.set_progress(1, 3, description="Processing uploaded csv file...")
+    progress_recorder.set_progress(1, 4, description="Processing uploaded csv file...")
 
     update_resaletransactions_table_with_csv("resaletransactions_resaletransaction", input_file, "tmp_table")
 
-    progress_recorder.set_progress(2, 3, description="Updating foreign keys...")
+    progress_recorder.set_progress(2, 4, description="Updating foreign keys with existing records...")
 
     update_tableA_FK_match_with_tableB_PK_on_matching_columns(
         table_a_name="resaletransactions_resaletransaction",
@@ -67,9 +67,14 @@ def upload_csv_file_impl(self,input_file):
             "street_name": "street_name"
         })
     
+    progress_recorder.set_progress(3, 4, description="Checking and updating record of postal codes...")
+    
     rows_still_null = ResaleTransaction.objects.filter(postal_code_key_id__isnull=True)
     if len(rows_still_null) > 0:
         update_postalcodes_from_empty_resaletransactions_postalcodes(rows_still_null)
+
+        
+    progress_recorder.set_progress(5, 5, description="Updating timestamp of last update of resaletransaction table...")
     
     # update table timestamp
     return {'table_last_updated': update_timestamps_table_lastupdated("resaletransactions_resaletransaction")}

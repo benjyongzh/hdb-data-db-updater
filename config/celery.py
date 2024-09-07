@@ -7,7 +7,7 @@ from celery import Celery
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.django.local')
 
 # Create the Celery app instance.
-app = Celery('config.django')
+app = Celery('config')
 
 # Load task modules from all registered Django app configs.
 app.config_from_object('config.django.local', namespace='CELERY')
