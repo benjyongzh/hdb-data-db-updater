@@ -103,3 +103,5 @@ def upload_geojson_impl(self, geojson_file):
     # update table timestamp    
     # return {'table_last_updated': update_timestamps_table_lastupdated("postalcodes_buildinggeometrypolygon")}
     update_timestamps_table_lastupdated("postalcodes_buildinggeometrypolygon")
+
+    return "Task completed"

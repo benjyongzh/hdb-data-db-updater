@@ -96,6 +96,7 @@
         role="button"
         >View result</a
       >
+      <p>Task Progress: <span id="progress-percentage">0</span>%</p>
     </div>
   </div>
 </div>
@@ -155,6 +156,9 @@
         bottom_link.classList.remove("not-visible");
         uploadForm.reset();
         last_updated_text.textContent = response.table_last_updated;
+
+        const taskId = response.task_id;
+        monitorProgress(taskId);
       },
       error: function (err) {
         //console.log(err);
@@ -165,6 +169,17 @@
       processData: false,
     });
   });
+
+  function monitorProgress(taskId) {
+    const eventSource = new EventSource(`/progress/${taskId}/`);
+    eventSource.onmessage = function (event) {
+      const data = JSON.parse(event.data);
+      $("#progress-percentage").text(data.progress.percent || 0);
+      if (data.progress.percent === 100) {
+        eventSource.close();
+      }
+    };
+  }
 </script>
 
 {% endblock %}

@@ -16,11 +16,14 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from celery_progress.views import get_progress
+from .views import get_task_progress
 # import debug_toolbar
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     # path('__debug__/', include(debug_toolbar.urls)),
     path('api/', include('api.urls')), #/api/resale-transactions | /api/postal-codes
+    path('progress/<task_id>/', get_task_progress, name='task_progress'),
     
 ]

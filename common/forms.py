@@ -1,5 +1,7 @@
 from django.forms import Form, FileField, FileInput
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
 from rest_framework import status
 from common.util.utils import update_timestamps_table_lastupdated, get_table_lastupdated_datetime
 
@@ -15,10 +17,12 @@ def process_file_upload(request, request_file_key:str, file_ext:str, success_try
             return JsonResponse({'error':f"File is not {file_ext} format."}, status=status.HTTP_406_NOT_ACCEPTABLE)
         try:
             # start async celery task here and return response after starting task
-            success_try_func.delay(uploaded_file)
+            temp_file_path = default_storage.save(f'temp/{uploaded_file.name}', ContentFile(uploaded_file.read()))
+            task = success_try_func.delay(temp_file_path)
+            # success_try_func.delay(uploaded_file)
             # data = update_timestamps_table_lastupdated("postalcodes_buildinggeometrypolygon")
             # resp = {"redirect_url": success_redirect_url, "table_last_updated": data}
-            resp = {"redirect_url": success_redirect_url}
+            resp = {"redirect_url": success_redirect_url, "task_id": task.id}
             return JsonResponse(resp, status=status.HTTP_200_OK)
         except Exception as e:
             return JsonResponse({'error':f"{e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
