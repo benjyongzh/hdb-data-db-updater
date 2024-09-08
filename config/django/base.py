@@ -47,6 +47,9 @@ INSTALLED_APPS = [
     'rest_framework',
     'django.contrib.gis',
     'timestamps',
+	# Celery apps
+	'celery',
+	'celery_progress',
 
 ]
 
