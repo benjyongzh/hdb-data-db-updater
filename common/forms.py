@@ -22,6 +22,7 @@ def process_file_upload(request, request_file_key:str, file_ext:str, success_try
 
             print("Celery Task created. ID:",task)
             resp = {"redirect_url": success_redirect_url, "task_id": task.id}
+            # TODO create a task object in task table. with task_id. description of task. for future referencing
             return JsonResponse(resp, status=status.HTTP_200_OK)
         except Exception as e:
             return JsonResponse({'error':f"{e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

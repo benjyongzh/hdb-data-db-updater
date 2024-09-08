@@ -85,6 +85,7 @@ def upload_geojson_impl(self, geojson_file):
     progress_recorder.set_progress(1, 3, description="Processing uploaded Geojson file...")
 
     with BytesIO(geojson_file) as file:
+        # TODO insert progrses_recorder as dependency to adjust progress in function
         import_new_geojson_features_into_table(BuildingGeometryPolygon, file)
 
     progress_recorder.set_progress(2, 3, description="Updating Foreign Keys...")
@@ -106,4 +107,4 @@ def upload_geojson_impl(self, geojson_file):
     # return {'table_last_updated': update_timestamps_table_lastupdated("postalcodes_buildinggeometrypolygon")}
     update_timestamps_table_lastupdated("postalcodes_buildinggeometrypolygon")
 
-    return "Task completed"
+    return "Geojson database update completed!"
