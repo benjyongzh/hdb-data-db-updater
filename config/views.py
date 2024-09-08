@@ -23,8 +23,8 @@ def get_task_progress(request, task_id):
 
         # Continuously yield progress updates
         while not task_result.ready():  # Stream until the task is completed
-            progress_data = progress.to_dict()  # Get progress as a dictionary
-            yield f"data: {json.dumps(progress_data)}\n\n"  # Send the data in SSE format
+            # progress_data = progress.to_dict()  # Get progress as a dictionary
+            yield f"data: {json.dumps(progress.get_info())}\n\n"  # Send the data in SSE format
 
     # Return the response with content type 'text/event-stream'
     response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
