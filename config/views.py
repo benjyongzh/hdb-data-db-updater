@@ -19,7 +19,7 @@ def get_task_progress(request, task_id):
 
         # Create a Progress object to manage task state
         progress = Progress(task_result)
-        print("progress:", progress)
+        # print("progress:", progress)
 
         # Continuously yield progress updates
         while not task_result.ready():  # Stream until the task is completed
