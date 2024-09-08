@@ -10,6 +10,7 @@ from django.http import JsonResponse
 from common.util.utils import update_timestamps_table_lastupdated, get_table_lastupdated_datetime,update_tableA_FK_match_with_tableB_PK_on_matching_columns
 from celery import shared_task
 from celery_progress.backend import ProgressRecorder
+from io import BytesIO
 
 # Register your models here.
 @admin.register(PostalCodeAddress)
@@ -83,7 +84,8 @@ def upload_geojson_impl(self, geojson_file):
 
     progress_recorder.set_progress(1, 3, description="Processing uploaded Geojson file...")
 
-    import_new_geojson_features_into_table(BuildingGeometryPolygon, geojson_file)
+    with BytesIO(geojson_file) as file:
+        import_new_geojson_features_into_table(BuildingGeometryPolygon, file)
 
     progress_recorder.set_progress(2, 3, description="Updating Foreign Keys...")
 
