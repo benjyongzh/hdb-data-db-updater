@@ -85,7 +85,6 @@ def upload_geojson_impl(self, geojson_file):
     steps_remaining:int = 2
 
     with BytesIO(geojson_file) as file:
-        # TODO insert progrses_recorder as dependency to adjust progress in function
         geojson_features = import_new_geojson_features_into_table(BuildingGeometryPolygon, file, progress_recorder,steps_remaining)
 
     total_steps = steps_remaining + len(geojson_features)
