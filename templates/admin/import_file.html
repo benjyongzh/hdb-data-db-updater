@@ -91,8 +91,8 @@
   </div>
   <div class="mt-3 row justify-content-center">
     <div class="col max-width d-flex flex-column align-items-center">
-      <h6 class="col max-width d-flex flex-column align-self-start" id="bottom-text"><strong></strong></h5>
-      <h6 class="col max-width d-flex flex-column align-self-start" id="bottom-subtext"></h5>
+      <h6 class="col max-width d-flex flex-column" id="bottom-text"><strong></strong></h5>
+      <h6 class="col max-width d-flex flex-column" id="bottom-subtext"></h5>
       <a
         id="bottom-link"
         href="/api/resale-transactions/"
@@ -154,7 +154,6 @@
         xhr.upload.addEventListener("progress", (e) => {
           if (e.lengthComputable) {
             const percentProgress = (e.loaded / e.total) * 100;
-            console.log(percentProgress);
             progress_bar.style.width = `${percentProgress}%`;
             progress_bar.ariaValueNow = `${percentProgress}`;
             if (percentProgress >= 100) {
@@ -199,28 +198,31 @@
 
   function monitorProgress(taskId) {
     const eventSource = new EventSource(`/progress/${taskId}/`);
+    progress_bar_bg.classList.remove("not-visible");
     eventSource.onmessage = function (event) {
       const data = JSON.parse(event.data);
       // see data content
       //console.log(data)
-      if (data.progress.percent === 100 && data.complete === true) {
-        $("#bottom-text").text(`Task ${taskId}`);
-        $("#bottom-subtext").text(data.result);
+      progress_bar.style.width = `${data.progress.percent}%`;
+      progress_bar.ariaValueNow = `${data.progress.percent}`;
+      if (data.progress.percent === 100) {
+        $("#bottom-text").text(`Task ${taskId} completed!`);
+        $("#bottom-subtext").text(``);
+        progress_bar_bg.classList.add("not-visible");
         eventSource.close();
       } else {
         if(data.progress.current !== 0){
-          $("#bottom-text").text(`Task ${taskId} in progress...`);
-          $("#bottom-subtext").text(`Step ${data.progress.current} of ${data.progress.total}: ${data.progress.description}`);
+          $("#bottom-text").text(`Task ${taskId} progress: ${Math.round(data.progress.percent)}%`);
+          $("#bottom-subtext").text(`${data.progress.description}`);
         }else {
-          $("#bottom-text").text(`Task ${taskId}`);
-          $("#bottom-subtext").text(`Beginning...`);
+          $("#bottom-text").text(`Task ${taskId} starting...`);
         };
       };
     };
 
     eventSource.onerror = function () {
       $("#bottom-text").text(`Task ${taskId} eventSource error`);
-      $("#bottom-subtext").text("Could not receive progress updates");
+      progress_bar_bg.classList.add("not-visible");
       eventSource.close();
     }
   }

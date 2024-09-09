@@ -26,7 +26,7 @@ def get_block_number_from_description(description) -> str:
 def get_geometry_from_feature(feature):
     return feature['geometry']
 
-def import_new_geojson_features_into_table(model_object, geojson_file) -> None:
+def import_new_geojson_features_into_table(model_object, geojson_file,progress_recorder,steps_remaining:int):
 
     try:
         gj = json.load(geojson_file)
@@ -85,7 +85,11 @@ def import_new_geojson_features_into_table(model_object, geojson_file) -> None:
                 building_polygon=final_geom
             ))
         
+        progress_recorder.set_progress(feature_index, len(features) + steps_remaining, description=f"Inserting Geojson item {feature_index} out of {len(features)}")
+        
     BuildingGeometryPolygon.objects.bulk_create(polygons)
+
+    return features
 
 def remove_z_from_geom_coordinates(coords):
     arr = coords[0]

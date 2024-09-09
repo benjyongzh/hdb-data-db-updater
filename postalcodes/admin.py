@@ -82,13 +82,15 @@ class BuildingGeometryPolygonAdmin(admin.ModelAdmin):
 def upload_geojson_impl(self, geojson_file):
     progress_recorder = ProgressRecorder(self)
 
-    progress_recorder.set_progress(1, 3, description="Processing uploaded Geojson file...")
+    steps_remaining:int = 2
 
     with BytesIO(geojson_file) as file:
         # TODO insert progrses_recorder as dependency to adjust progress in function
-        import_new_geojson_features_into_table(BuildingGeometryPolygon, file)
+        geojson_features = import_new_geojson_features_into_table(BuildingGeometryPolygon, file, progress_recorder,steps_remaining)
 
-    progress_recorder.set_progress(2, 3, description="Updating Foreign Keys...")
+    total_steps = steps_remaining + len(geojson_features)
+
+    progress_recorder.set_progress(total_steps-1, total_steps, description="Updating Foreign Keys")
 
     update_tableA_FK_match_with_tableB_PK_on_matching_columns(
         table_a_name="postalcodes_buildinggeometrypolygon",
@@ -101,7 +103,7 @@ def upload_geojson_impl(self, geojson_file):
         }
     )
 
-    progress_recorder.set_progress(3, 3, description="Updating timestamp of last update of buildinggeometrypolygon table...")
+    progress_recorder.set_progress(total_steps, total_steps, description="Updating timestamp of last update of buildinggeometrypolygon table")
         
     # update table timestamp    
     # return {'table_last_updated': update_timestamps_table_lastupdated("postalcodes_buildinggeometrypolygon")}
