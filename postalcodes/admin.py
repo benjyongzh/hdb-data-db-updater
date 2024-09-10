@@ -76,20 +76,28 @@ class BuildingGeometryPolygonAdmin(admin.ModelAdmin):
                 'form_title': "Upload HDB building polygons .geojson file.",
                 'table_last_updated': last_updated
             }
+            
+            # TODO if any, get task object in task table. with task_id. description of task
             return render(request, "admin/import_file.html", context=form_context)
         
 @shared_task(bind=True)
 def upload_geojson_impl(self, geojson_file):
     progress_recorder = ProgressRecorder(self)
 
-    steps_remaining:int = 2
+    steps_remaining:int = 3
 
     with BytesIO(geojson_file) as file:
-        geojson_features = import_new_geojson_features_into_table(BuildingGeometryPolygon, file, progress_recorder,steps_remaining)
+        geojson_features = import_new_geojson_features_into_table(
+            BuildingGeometryPolygon,
+            file,
+            progress_record={
+                'progress_recorder': progress_recorder,
+                'steps_remaining': steps_remaining
+            })
 
     total_steps = steps_remaining + len(geojson_features)
 
-    progress_recorder.set_progress(total_steps-1, total_steps, description="Updating Foreign Keys")
+    progress_recorder.set_progress(total_steps-2, total_steps, description="Updating Foreign Keys")
 
     update_tableA_FK_match_with_tableB_PK_on_matching_columns(
         table_a_name="postalcodes_buildinggeometrypolygon",
@@ -102,10 +110,12 @@ def upload_geojson_impl(self, geojson_file):
         }
     )
 
-    progress_recorder.set_progress(total_steps, total_steps, description="Updating timestamp of last update of buildinggeometrypolygon table")
+    progress_recorder.set_progress(total_steps-1, total_steps, description="Updating timestamp of last update of buildinggeometrypolygon table")
         
     # update table timestamp    
     # return {'table_last_updated': update_timestamps_table_lastupdated("postalcodes_buildinggeometrypolygon")}
     update_timestamps_table_lastupdated("postalcodes_buildinggeometrypolygon")
+
+    progress_recorder.set_progress(total_steps, total_steps, description="Finishing up")
 
     return "Geojson database update completed!"
