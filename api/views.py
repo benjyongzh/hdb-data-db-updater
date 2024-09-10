@@ -18,6 +18,12 @@ class get_all_building_polygons(ListAPIView):
     queryset = BuildingGeometryPolygon.objects.all().order_by("id")
     serializer_class = BuildingGeometryPolygonSerializer
 
+    def get_serializer_context(self):
+        # Pass the zoom level to the serializer context
+        # zoom_level = int(self.request.query_params.get('zoom', 12))
+        zoom_level = 1
+        return {'zoom_level': zoom_level}
+
 # return the average price of a block within a past given timeframe
 class average_price_overview(APIView):
     def get(self, request, timeframe):
