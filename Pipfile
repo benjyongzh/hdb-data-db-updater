@@ -20,6 +20,7 @@ django-extensions = "*"
 celery = "*"
 redis = "*"
 celery-progress = "*"
+shapely = "*"
 
 [dev-packages]
 
