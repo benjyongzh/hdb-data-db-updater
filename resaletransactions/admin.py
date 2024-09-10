@@ -7,6 +7,7 @@ from common.forms import FileUploadForm, process_file_upload
 from common.util.utils import update_timestamps_table_lastupdated, get_table_lastupdated_datetime, update_tableA_FK_match_with_tableB_PK_on_matching_columns
 from celery import shared_task
 from celery_progress.backend import ProgressRecorder
+from io import BytesIO
 
 # Register your models here.
 @admin.register(ResaleTransaction)
@@ -51,11 +52,12 @@ class ResaleTransactionAdmin(admin.ModelAdmin):
 def upload_csv_file_impl(self,input_file):
     progress_recorder = ProgressRecorder(self)
 
-    progress_recorder.set_progress(1, 4, description="Processing uploaded csv file...")
+    progress_recorder.set_progress(1, 5, description="Adding new rows to database from csv file")
 
-    update_resaletransactions_table_with_csv("resaletransactions_resaletransaction", input_file, "tmp_table")
+    with BytesIO(input_file) as file:
+        update_resaletransactions_table_with_csv("resaletransactions_resaletransaction", file, "tmp_table")
 
-    progress_recorder.set_progress(2, 4, description="Updating foreign keys with existing records...")
+    progress_recorder.set_progress(2, 5, description="Updating foreign keys of new rows using existing records")
 
     update_tableA_FK_match_with_tableB_PK_on_matching_columns(
         table_a_name="resaletransactions_resaletransaction",
@@ -67,14 +69,17 @@ def upload_csv_file_impl(self,input_file):
             "street_name": "street_name"
         })
     
-    progress_recorder.set_progress(3, 4, description="Checking and updating record of postal codes...")
+    progress_recorder.set_progress(3, 5, description="Checking and updating record of postal codes")
     
     rows_still_null = ResaleTransaction.objects.filter(postal_code_key_id__isnull=True)
     if len(rows_still_null) > 0:
         update_postalcodes_from_empty_resaletransactions_postalcodes(rows_still_null)
 
-        
-    progress_recorder.set_progress(5, 5, description="Updating timestamp of last update of resaletransaction table...")
+    progress_recorder.set_progress(4, 5, description="Updating timestamp of last update of resaletransaction table")
     
     # update table timestamp
-    return {'table_last_updated': update_timestamps_table_lastupdated("resaletransactions_resaletransaction")}
+    update_timestamps_table_lastupdated("resaletransactions_resaletransaction")
+    
+    progress_recorder.set_progress(5, 5, description="Finishing up")
+
+    return "Resale Transactions database update completed!"

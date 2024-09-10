@@ -37,6 +37,7 @@ def set_foreign_key(engine, table_name:str, fk_column_name:str, fk_ref_table_nam
     with engine.connect() as conn:
         conn.execute(f"ALTER TABLE {table_name} ADD FOREIGN KEY({fk_column_name}) REFERENCES {fk_ref_table_name}({fk_ref_col_name});")
 
+'''
 def update_resaletransactions_foreignkey_on_postalcodes(batch_size) -> None:
     # cycle through related_model objects
     rows_to_update = ResaleTransaction.objects.filter(postal_code_key_id__isnull=True)
@@ -71,6 +72,7 @@ def update_resaletransactions_foreignkey_on_postalcodes(batch_size) -> None:
     rows_still_null = rows_to_update.filter(postal_code_key_id__isnull=True)
     if len(rows_still_null) > 0:
         update_postalcodes_from_empty_resaletransactions_postalcodes(rows_still_null)
+'''
 
 def update_postalcodes_from_empty_resaletransactions_postalcodes(rows_to_update) -> None:
     for row in rows_to_update:
