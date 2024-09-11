@@ -11,6 +11,8 @@ class ResaleTransactionSerializer(serializers.ModelSerializer):
         fields= '__all__'
 
 class PostalCodeAddressSerializer(serializers.ModelSerializer):
+    latest_transaction = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+    
     class Meta:
         model = PostalCodeAddress
         fields= '__all__'
