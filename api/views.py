@@ -93,7 +93,25 @@ class latest_price_per_block(ListAPIView):
     serializer_class = PostalCodeAddressSerializer
 
 
-class latest_price_per_unit(ListAPIView):
-    
+class latest_average_price_per_block(ListAPIView):
+    # get all latest prices per unit
+    latest_transaction_per_unit = ResaleTransaction.objects.distinct(
+        "town",
+        "flat_type",
+        "block",
+        "street_name",
+        "floor_area_sqm",
+        "flat_model",
+        "storey_range",).order_by(
+        "town",
+        "flat_type",
+        "block",
+        "street_name",
+        "floor_area_sqm",
+        "flat_model",
+        "storey_range",
+        "-id")
+
+    # 
 
     serializer_class = ResaleTransactionSerializer
