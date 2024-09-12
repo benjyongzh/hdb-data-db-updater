@@ -38,25 +38,6 @@ class latest_price_per_block(ListAPIView):
         .values("resale_price")[:1]
     
     queryset = PostalCodeAddress.objects.annotate(latest_transaction = Subquery(latest_transaction))
-
-
-    # select latest transaction per block
-    """ queryset = ResaleTransaction.objects.distinct(
-        "town",
-        "flat_type",
-        "block",
-        "street_name",
-        "floor_area_sqm",
-        "flat_model",
-        "storey_range",).order_by(
-        "town",
-        "flat_type",
-        "block",
-        "street_name",
-        "floor_area_sqm",
-        "flat_model",
-        "storey_range",
-        "-id") """
     
     '''
     queryset = ResaleTransaction.objects.raw("""
@@ -88,30 +69,38 @@ class latest_price_per_block(ListAPIView):
     )
     '''
     
-    # join latest_transaction with postalcodeaddress ON same block and street_name
-    # join 2nd table with polygons ON same postalcode
     serializer_class = PostalCodeAddressSerializer
 
+class latest_price_per_unit(ListAPIView):
+    def get_queryset(self):
+        # check for params
+        sort_by_id = self.request.query_params.get('sortbyid', None)
 
-class latest_average_price_per_block(ListAPIView):
-    # get all latest prices per unit
-    latest_transaction_per_unit = ResaleTransaction.objects.distinct(
-        "town",
-        "flat_type",
-        "block",
-        "street_name",
-        "floor_area_sqm",
-        "flat_model",
-        "storey_range",).order_by(
-        "town",
-        "flat_type",
-        "block",
-        "street_name",
-        "floor_area_sqm",
-        "flat_model",
-        "storey_range",
-        "-id")
+        # get all latest prices per unit
+        # latest_transaction_per_unit = ResaleTransaction.objects \
+        queryset = ResaleTransaction.objects \
+            .distinct(
+                "town",
+                "flat_type",
+                "block",
+                "street_name",
+                "floor_area_sqm",
+                "flat_model",
+                "storey_range",) \
+            .order_by(
+                "town",
+                "flat_type",
+                "block",
+                "street_name",
+                "floor_area_sqm",
+                "flat_model",
+                "storey_range",
+                "-id")
+        
+        if sort_by_id == "true":
+            # return ResaleTransaction.objects.filter(**{f"{sort_by}__in":Subquery(queryset.only(sort_by))}).order_by(sort_by)
+            return ResaleTransaction.objects.filter(id__in=Subquery(queryset.only("id"))).order_by("id")
 
-    # 
+        return queryset
 
     serializer_class = ResaleTransactionSerializer
