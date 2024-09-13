@@ -2,13 +2,14 @@ from rest_framework.views import APIView
 from rest_framework.generics import ListAPIView
 from resaletransactions.models import ResaleTransaction
 from postalcodes.models import PostalCodeAddress, BuildingGeometryPolygon
-from .serializers import ResaleTransactionSerializer, PostalCodeAddressSerializer, BuildingGeometryPolygonSerializer
+from .serializers import ResaleTransactionSerializerBlock, ResaleTransactionSerializerUnit, ResaleTransactionSerializerFull, PostalCodeAddressSerializer, BuildingGeometryPolygonSerializer
 from django.db.models import OuterRef, Subquery, Max, F
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import JsonResponse
 from rest_framework import status
 
 class get_all_resale_prices(ListAPIView):
+    serializer_class = ResaleTransactionSerializerFull
     queryset = ResaleTransaction.objects.all().order_by("id")
 
     
@@ -51,6 +52,7 @@ class average_price_overview(APIView):
 
 # return the latest price of a block
 class latest_price_per_block(ListAPIView):
+    serializer_class = PostalCodeAddressSerializer
 
     latest_transaction = ResaleTransaction.objects \
         .filter(postal_code_key_id=OuterRef('id')) \
@@ -89,12 +91,19 @@ class latest_price_per_block(ListAPIView):
     )
     '''
     
-    serializer_class = PostalCodeAddressSerializer
 
 class latest_price_per_unit(ListAPIView):
+    
+    def get_serializer_class(self):
+        # check for params
+        full_info = self.request.query_params.get('fullinfo', None)
+        if full_info == "true":
+            return ResaleTransactionSerializerFull
+        return ResaleTransactionSerializerUnit
+
     def get_queryset(self):
         # check for params
-        sort_by_id = self.request.query_params.get('sortbyid', None)
+        sort_by = self.request.query_params.get('sortby', None)
 
         # get all latest prices per unit
         # latest_transaction_per_unit = ResaleTransaction.objects \
@@ -117,10 +126,33 @@ class latest_price_per_unit(ListAPIView):
                 "storey_range",
                 "-id")
         
-        if sort_by_id == "true":
-            # return ResaleTransaction.objects.filter(**{f"{sort_by}__in":Subquery(queryset.only(sort_by))}).order_by(sort_by)
-            return ResaleTransaction.objects.filter(id__in=Subquery(queryset.only("id"))).order_by("id")
+        if sort_by:
+            return ResaleTransaction.objects.filter(id__in=Subquery(queryset.only("id"))).order_by(sort_by)
 
         return queryset
 
-    serializer_class = ResaleTransactionSerializer
+
+class latest_avg_per_block(ListAPIView):
+    serializer_class = PostalCodeAddressSerializer
+
+    latest_transaction_per_unit = ResaleTransaction.objects \
+        .distinct(
+            "town",
+            "flat_type",
+            "block",
+            "street_name",
+            "floor_area_sqm",
+            "flat_model",
+            "storey_range",) \
+        .order_by(
+            "town",
+            "flat_type",
+            "block",
+            "street_name",
+            "floor_area_sqm",
+            "flat_model",
+            "storey_range",
+            "-id")
+    
+    # use aggregate
+    # queryset = PostalCodeAddress.objects.annotate(latest_transaction = Subquery(latest_transaction))
