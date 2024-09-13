@@ -4,10 +4,30 @@ from resaletransactions.models import ResaleTransaction
 from postalcodes.models import PostalCodeAddress, BuildingGeometryPolygon
 from .serializers import ResaleTransactionSerializer, PostalCodeAddressSerializer, BuildingGeometryPolygonSerializer
 from django.db.models import OuterRef, Subquery, Max, F
+from django.core.exceptions import ObjectDoesNotExist
+from django.http import JsonResponse
+from rest_framework import status
 
 class get_all_resale_prices(ListAPIView):
     queryset = ResaleTransaction.objects.all().order_by("id")
-    serializer_class = ResaleTransactionSerializer
+
+    
+class average_price_overview(APIView):
+    def get(self, request, timeframe):
+        print(timeframe)
+
+class get_resale_price_detail(APIView):
+    serializer_class = ResaleTransactionSerializerFull
+    
+    def get(self, request, id):
+        try:
+            queryset = ResaleTransaction.objects.get(id=id)
+            
+            return JsonResponse(data, status=status.HTTP_200_OK)
+        except ObjectDoesNotExist as e:
+            return e
+
+        
 
 class get_all_postal_codes(ListAPIView):
     queryset = PostalCodeAddress.objects.all().order_by("id")
