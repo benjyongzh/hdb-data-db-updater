@@ -5,7 +5,17 @@ from timestamps.models import TablesLastUpdated
 from shapely.geometry import shape, mapping
 from shapely.wkb import loads as load_wkb
 
-class ResaleTransactionSerializer(serializers.ModelSerializer):
+class ResaleTransactionSerializerBlock(serializers.ModelSerializer):
+    class Meta:
+        model = ResaleTransaction
+        fields = ('id', 'flat_type', 'block', 'street_name', 'resale_price')
+
+class ResaleTransactionSerializerUnit(serializers.ModelSerializer):
+    class Meta:
+        model = ResaleTransaction
+        fields = ('id', 'flat_type', 'block', 'street_name', 'storey_range', 'floor_area_sqm', 'flat_model', 'resale_price')
+
+class ResaleTransactionSerializerFull(serializers.ModelSerializer):
     class Meta:
         model = ResaleTransaction
         fields= '__all__'
