@@ -1,12 +1,11 @@
 from rest_framework.views import APIView
 from rest_framework.generics import ListAPIView
 from resaletransactions.models import ResaleTransaction
+from rest_framework.exceptions import NotFound
 from postalcodes.models import PostalCodeAddress, BuildingGeometryPolygon
 from .serializers import ResaleTransactionSerializerBlock, ResaleTransactionSerializerUnit, ResaleTransactionSerializerFull, PostalCodeAddressSerializer, BuildingGeometryPolygonSerializer
 from django.db.models import OuterRef, Subquery, Max, F
 from django.core.exceptions import ObjectDoesNotExist
-from django.http import JsonResponse
-from rest_framework import status
 
 class get_all_resale_prices(ListAPIView):
     serializer_class = ResaleTransactionSerializerFull
@@ -17,18 +16,16 @@ class average_price_overview(APIView):
     def get(self, request, timeframe):
         print(timeframe)
 
-class get_resale_price_detail(APIView):
+class get_resale_price_detail(ListAPIView):
     serializer_class = ResaleTransactionSerializerFull
-    
-    def get(self, request, id):
+    def get_queryset(self):
+        transaction_id = self.kwargs.get('id')
         try:
-            queryset = ResaleTransaction.objects.get(id=id)
-            
-            return JsonResponse(data, status=status.HTTP_200_OK)
-        except ObjectDoesNotExist as e:
-            return e
+            transaction = ResaleTransaction.objects.get(id=transaction_id)
+            return ResaleTransaction.objects.filter(id=transaction.id)
+        except ObjectDoesNotExist:
+            raise NotFound(detail=f"Transaction with ID '{transaction_id}' does not exist.")
 
-        
 
 class get_all_postal_codes(ListAPIView):
     queryset = PostalCodeAddress.objects.all().order_by("id")
