@@ -51,12 +51,12 @@ class average_price_overview(APIView):
 class latest_price_per_block(ListAPIView):
     serializer_class = PostalCodeAddressSerializer
 
-    latest_transaction = ResaleTransaction.objects \
+    resale_price = ResaleTransaction.objects \
         .filter(postal_code_key_id=OuterRef('id')) \
         .order_by("-id") \
         .values("resale_price")[:1]
     
-    queryset = PostalCodeAddress.objects.annotate(latest_transaction = Subquery(latest_transaction))
+    queryset = PostalCodeAddress.objects.annotate(resale_price = Subquery(resale_price))
     
     '''
     queryset = ResaleTransaction.objects.raw("""
