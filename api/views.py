@@ -49,14 +49,34 @@ class average_price_overview(APIView):
 
 # return the latest price of a block
 class latest_price_per_block(ListAPIView):
-    serializer_class = PostalCodeAddressSerializer
+    def get_serializer_class(self):
+        # check for params
+        full_info = self.request.query_params.get('fullinfo', None)
+        if full_info == "true":
+            return ResaleTransactionSerializerFull
+        return ResaleTransactionSerializerBlock
 
-    resale_price = ResaleTransaction.objects \
-        .filter(postal_code_key_id=OuterRef('id')) \
-        .order_by("-id") \
-        .values("resale_price")[:1]
-    
-    queryset = PostalCodeAddress.objects.annotate(resale_price = Subquery(resale_price))
+    def get_queryset(self):        
+        # check for params
+        sort_by = self.request.query_params.get('sortby', None)
+
+        queryset = ResaleTransaction.objects \
+                .distinct(
+                    "town",
+                    "flat_type",
+                    "block",
+                    "street_name") \
+                .order_by(
+                    "town",
+                    "flat_type",
+                    "block",
+                    "street_name",
+                    "-id")
+        
+        if sort_by:
+            return ResaleTransaction.objects.filter(id__in=Subquery(queryset.only("id"))).order_by(sort_by)
+
+        return queryset
     
     '''
     queryset = ResaleTransaction.objects.raw("""

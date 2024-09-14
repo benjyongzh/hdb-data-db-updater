@@ -6,16 +6,19 @@ from shapely.geometry import shape, mapping
 from shapely.wkb import loads as load_wkb
 
 class ResaleTransactionSerializerBlock(serializers.ModelSerializer):
+    postal_code = serializers.CharField(source='postal_code_key.postal_code', read_only=True)
     class Meta:
         model = ResaleTransaction
-        fields = ('id', 'flat_type', 'block', 'street_name', 'resale_price')
+        fields = ('id', 'flat_type', 'block', 'street_name', 'resale_price', 'postal_code')
 
 class ResaleTransactionSerializerUnit(serializers.ModelSerializer):
+    postal_code = serializers.CharField(source='postal_code_key.postal_code', read_only=True)
     class Meta:
         model = ResaleTransaction
-        fields = ('id', 'flat_type', 'block', 'street_name', 'storey_range', 'floor_area_sqm', 'flat_model', 'resale_price')
+        fields = ('id', 'flat_type', 'block', 'street_name', 'storey_range', 'floor_area_sqm', 'flat_model', 'resale_price', 'postal_code')
 
 class ResaleTransactionSerializerFull(serializers.ModelSerializer):
+    postal_code = serializers.CharField(source='postal_code_key.postal_code', read_only=True)
     class Meta:
         model = ResaleTransaction
         fields= '__all__'
