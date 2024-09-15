@@ -43,10 +43,13 @@ class get_all_building_polygons(ListAPIView):
         return {'zoom_level': zoom_level}
 
 # return the average price of a block within a past given timeframe
-class average_price_overview(APIView):
-    def get(self, request, timeframe):
-        print(timeframe)
+class average_prices(ListAPIView):
+    def get_serializer_class(self):
+        pass
 
+    def get_queryset(self):
+        pass
+    
 class latest_prices(ListAPIView):
     
     def get_serializer_class(self):
