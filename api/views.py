@@ -63,7 +63,6 @@ class latest_prices(ListAPIView):
 
     def get_queryset(self):
         # check for params
-        sort_by = self.request.query_params.get('sortby', None)
         group_by_block = self.request.query_params.get('groupbyblock', None)
 
         if group_by_block == "true":
@@ -101,8 +100,39 @@ class latest_prices(ListAPIView):
                     "storey_range",
                     "-id")
         
+        queryset = ResaleTransaction.objects.filter(id__in=Subquery(queryset.only("id")))
+        
+        # check for params
+        town = self.request.query_params.get('town', None)
+        if town:
+            town = town.strip()
+            queryset = queryset.filter(town__iexact=town)
+
+        # TODO to be able to have a range of flat_types
+        # flat_type = self.request.query_params.get('flat_type', None)
+        # if flat_type:
+        #     queryset = queryset.filter(flat_type=flat_type)
+
+        # TODO implement range for storey_range
+        # lowest_floor = self.request.query_params.get('lowest_floor', None)
+        # if lowest_floor:
+        #     queryset = queryset.filter(storey_range__gte=lowest_floor)
+
+        # highest_floor = self.request.query_params.get('highest_floor', None)
+        # if highest_floor:
+        #     queryset = queryset.filter(storey_range__lte=highest_floor)
+
+        min_price = self.request.query_params.get('min_price', None)
+        if min_price:
+            queryset = queryset.filter(resale_price__gte=min_price)
+
+        max_price = self.request.query_params.get('max_price', None)
+        if max_price:
+            queryset = queryset.filter(resale_price__lte=max_price)
+
+        sort_by = self.request.query_params.get('sortby', None)
         if sort_by:
-            return ResaleTransaction.objects.filter(id__in=Subquery(queryset.only("id"))).order_by(sort_by)
+            queryset = queryset.order_by(sort_by)
 
         return queryset
 
