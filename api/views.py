@@ -6,10 +6,22 @@ from postalcodes.models import PostalCodeAddress, BuildingGeometryPolygon
 from .serializers import ResaleTransactionSerializerBlock, ResaleTransactionSerializerUnit, ResaleTransactionSerializerFull, PostalCodeAddressSerializer, BuildingGeometryPolygonSerializer
 from django.db.models import OuterRef, Subquery, Max, F
 from django.core.exceptions import ObjectDoesNotExist
+from .utils import filter_queryset
 
 class get_all_resale_prices(ListAPIView):
     serializer_class = ResaleTransactionSerializerFull
-    queryset = ResaleTransaction.objects.all().order_by("id")
+
+    def get_queryset(self):
+        queryset = ResaleTransaction.objects.all()
+        filter_fields = {
+                'town': 'town__iexact',    # Case-insensitive category match
+                'max_price': 'resale_price__lte',         # Price less than or equal to
+                'min_price': 'resale_price__gte',         # Price greater than or equal to
+            }
+
+        queryset = filter_queryset(queryset, self.request.query_params, filter_fields)
+        
+        return queryset.order_by("id")
 
     
 class average_price_overview(APIView):
@@ -104,13 +116,15 @@ class latest_prices(ListAPIView):
                     "-id")
         
         queryset = ResaleTransaction.objects.filter(id__in=Subquery(queryset.only("id")))
-        
-        # check for params
-        town = self.request.query_params.get('town', None)
-        if town:
-            town = town.strip()
-            queryset = queryset.filter(town__iexact=town)
 
+        filter_fields = {
+            'town': 'town__iexact',    # Case-insensitive category match
+            'max_price': 'resale_price__lte',         # Price less than or equal to
+            'min_price': 'resale_price__gte',         # Price greater than or equal to
+        }
+
+        queryset = filter_queryset(queryset, self.request.query_params, filter_fields)
+        
         # TODO to be able to have a range of flat_types
         # flat_type = self.request.query_params.get('flat_type', None)
         # if flat_type:
@@ -124,14 +138,6 @@ class latest_prices(ListAPIView):
         # highest_floor = self.request.query_params.get('highest_floor', None)
         # if highest_floor:
         #     queryset = queryset.filter(storey_range__lte=highest_floor)
-
-        min_price = self.request.query_params.get('min_price', None)
-        if min_price:
-            queryset = queryset.filter(resale_price__gte=min_price)
-
-        max_price = self.request.query_params.get('max_price', None)
-        if max_price:
-            queryset = queryset.filter(resale_price__lte=max_price)
 
         sort_by = self.request.query_params.get('sortby', None)
         if sort_by:
