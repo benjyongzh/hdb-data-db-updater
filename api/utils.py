@@ -1,4 +1,4 @@
-from django.db.models import QuerySet
+from django.db.models import QuerySet,Q
 
 def filter_queryset(queryset: QuerySet, params: dict, filter_fields: dict) -> QuerySet:
     """
@@ -10,9 +10,18 @@ def filter_queryset(queryset: QuerySet, params: dict, filter_fields: dict) -> Qu
     """
     for param, field_lookup in filter_fields.items():
         value = params.get(param)
-        if value:
-            if isinstance(value, str):
-                value = value.strip()  # Remove any leading/trailing spaces
-            queryset = queryset.filter(**{field_lookup: value})
-    
+        if value and isinstance(value, str):
+            # value = value.strip()  # Remove any leading/trailing spaces
+            value = [item.strip() for item in value.split(',')]
+            if len(value) > 1:
+                # Build a Q object for case-insensitive filtering on multiple categories
+                q_object = Q()
+                for item in value:
+                    q_object |= Q(**{field_lookup: item})
+                
+                # Filter the products based on the Q object
+                queryset = queryset.filter(q_object)
+                # queryset = queryset.filter(**{lookup_string: value})
+            else:
+                queryset = queryset.filter(**{field_lookup: value[0]})
     return queryset
