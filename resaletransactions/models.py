@@ -28,4 +28,8 @@ class ResaleTransaction(models.Model):
     
     def address(self):
         return f"{self.block} {self.street_name}"
+    
+    def get_storey_range(self):
+        lower,upper = self.storey_range.split(" TO ")
+        return int(lower), int(upper)
 
