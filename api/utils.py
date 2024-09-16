@@ -25,3 +25,25 @@ def filter_queryset(queryset: QuerySet, params: dict, filter_fields: dict) -> Qu
             else:
                 queryset = queryset.filter(**{field_lookup: value[0]})
     return queryset
+
+
+def filter_storey(queryset: QuerySet, param_value:str|None, limit:str):
+    if param_value:
+        # try:
+            param_value = int(param_value)
+            # Filter products based on age range in the associated category
+            filtered_transactions = []
+            for transaction in queryset:
+                lower, upper = transaction.get_storey_range()
+                if lower is not None and upper is not None:
+                    if limit == "lower":
+                        if param_value >= lower:
+                            filtered_transactions.append(transaction)
+                    elif limit == "upper":
+                        if param_value <= upper:
+                            filtered_transactions.append(transaction)
+                    
+            return filtered_transactions
+        # except ValueError:
+        #     return Response({"error": "Invalid age range provided."}, status=400)
+    return queryset

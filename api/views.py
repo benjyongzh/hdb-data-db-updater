@@ -128,13 +128,11 @@ class latest_prices(ListAPIView):
         queryset = filter_queryset(queryset, self.request.query_params, filter_fields)
 
         # TODO implement range for storey_range
-        # lowest_floor = self.request.query_params.get('lowest_floor', None)
-        # if lowest_floor:
-        #     queryset = queryset.filter(storey_range__gte=lowest_floor)
+        lowest_floor = self.request.query_params.get('lowest_floor', None)
+        queryset = filter_storey(queryset, lowest_floor, "lower")
 
-        # highest_floor = self.request.query_params.get('highest_floor', None)
-        # if highest_floor:
-        #     queryset = queryset.filter(storey_range__lte=highest_floor)
+        highest_floor = self.request.query_params.get('highest_floor', None)
+        queryset = filter_storey(queryset, highest_floor, "upper")
 
         sort_by = self.request.query_params.get('sortby', None)
         if sort_by:
