@@ -6,7 +6,7 @@ from postalcodes.models import PostalCodeAddress, BuildingGeometryPolygon
 from .serializers import ResaleTransactionSerializerBlock, ResaleTransactionSerializerUnit, ResaleTransactionSerializerFull, PostalCodeAddressSerializer, BuildingGeometryPolygonSerializer
 from django.db.models import OuterRef, Subquery, Max, F
 from django.core.exceptions import ObjectDoesNotExist
-from .utils import filter_queryset
+from .utils import filter_queryset,filter_storey
 
 class get_all_resale_prices(ListAPIView):
     serializer_class = ResaleTransactionSerializerFull
@@ -20,14 +20,10 @@ class get_all_resale_prices(ListAPIView):
             'flat_type': 'flat_type__iexact'
         }
 
-        queryset = filter_queryset(queryset, self.request.query_params, filter_fields)
+        queryset = filter_queryset(queryset, self.request.query_params, filter_fields).order_by("id")
+        queryset = filter_storey(queryset, self.request.query_params)
         
-        return queryset.order_by("id")
-
-    
-class average_price_overview(APIView):
-    def get(self, request, timeframe):
-        print(timeframe)
+        return queryset
 
 class get_resale_price_detail(ListAPIView):
     serializer_class = ResaleTransactionSerializerFull
@@ -127,16 +123,10 @@ class latest_prices(ListAPIView):
 
         queryset = filter_queryset(queryset, self.request.query_params, filter_fields)
 
-        # TODO implement range for storey_range
-        lowest_floor = self.request.query_params.get('lowest_floor', None)
-        queryset = filter_storey(queryset, lowest_floor, "lower")
+        sort_by = self.request.query_params.get('sortby', 'id')
+        queryset = queryset.order_by(sort_by)
 
-        highest_floor = self.request.query_params.get('highest_floor', None)
-        queryset = filter_storey(queryset, highest_floor, "upper")
-
-        sort_by = self.request.query_params.get('sortby', None)
-        if sort_by:
-            queryset = queryset.order_by(sort_by)
+        queryset = filter_storey(queryset, self.request.query_params)
 
         return queryset
 
