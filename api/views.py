@@ -1,10 +1,16 @@
-from rest_framework.views import APIView
 from rest_framework.generics import ListAPIView
 from resaletransactions.models import ResaleTransaction
 from rest_framework.exceptions import NotFound
 from postalcodes.models import PostalCodeAddress, BuildingGeometryPolygon
-from .serializers import ResaleTransactionSerializerBlock, ResaleTransactionSerializerUnit, ResaleTransactionSerializerFull, PostalCodeAddressSerializer, BuildingGeometryPolygonSerializer
-from django.db.models import OuterRef, Subquery, Max, F
+from .serializers import ResaleTransactionSerializerBlock, \
+ResaleTransactionSerializerBlockLatestAvg, \
+ResaleTransactionSerializerUnit, \
+ResaleTransactionSerializerFull, \
+ResaleTransactionSerializerBlockAverage, \
+ResaleTransactionSerializerUnitAverage, \
+PostalCodeAddressSerializer, \
+BuildingGeometryPolygonSerializer
+from django.db.models import OuterRef, Subquery, Max, F, Avg
 from django.core.exceptions import ObjectDoesNotExist
 from .utils import filter_queryset,filter_storey
 
@@ -54,11 +60,55 @@ class get_all_building_polygons(ListAPIView):
 # return the average price of a block within a past given timeframe
 class average_prices(ListAPIView):
     def get_serializer_class(self):
-        pass
+        # check for params
+        group_by_block = self.request.query_params.get('groupbyblock', None)
+        if group_by_block == "true":
+            return ResaleTransactionSerializerBlockAverage
+        else:
+            return ResaleTransactionSerializerUnitAverage
 
     def get_queryset(self):
-        pass
+        # check for params
+        group_by_block = self.request.query_params.get('groupbyblock', None)
+        past_months = self.request.query_params.get('pastmonths', None)
+
+        if group_by_block == "true":
+            # get avg per block
+            queryset = ResaleTransaction.objects \
+                .values("town",
+                        "flat_type",
+                        "block",
+                        "street_name") \
+                .annotate(average_price=Avg('resale_price'))
+        else:
+            # get avg per unit
+            queryset = ResaleTransaction.objects \
+                .values("town",
+                        "flat_type",
+                        "block",
+                        "street_name",
+                        "floor_area_sqm",
+                        "flat_model",
+                        "storey_range") \
+                .annotate(average_price=Avg('resale_price'))
+
+        # if past_months:
+        #     pass
     
+        # filter_fields = {
+        #     'town': 'town__iexact',    # Case-insensitive category match
+        #     'max_price': 'resale_price__lte',         # Price less than or equal to
+        #     'min_price': 'resale_price__gte',         # Price greater than or equal to
+        #     'flat_type': 'flat_type__iexact'
+        # }
+
+        # queryset = filter_queryset(queryset, self.request.query_params, filter_fields)
+
+        # sort_by = self.request.query_params.get('sortby', 'id')
+        # queryset = queryset.order_by(sort_by)
+        # print(queryset)
+        return queryset
+
 class latest_prices(ListAPIView):
     
     def get_serializer_class(self):
