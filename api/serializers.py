@@ -31,6 +31,13 @@ class ResaleTransactionSerializerUnitAverage(serializers.ModelSerializer):
         model = ResaleTransaction
         fields = ("town", "flat_type", "block", "street_name", "floor_area_sqm", "flat_model", "storey_range", 'postal_code', 'average_price')
 
+class ResaleTransactionSerializerBlockLatestAvg(serializers.ModelSerializer):
+    postal_code = serializers.CharField(source='postal_code_key.postal_code', read_only=True)
+    average_latest_price = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+    class Meta:
+        model = ResaleTransaction
+        fields = ("town", "block", "street_name", 'postal_code', 'average_latest_price')
+
 class ResaleTransactionSerializerFull(serializers.ModelSerializer):
     postal_code = serializers.CharField(source='postal_code_key.postal_code', read_only=True)
     class Meta:

@@ -7,6 +7,7 @@ ResaleTransactionSerializerUnit, \
 ResaleTransactionSerializerFull, \
 ResaleTransactionSerializerBlockAverage, \
 ResaleTransactionSerializerUnitAverage, \
+ResaleTransactionSerializerBlockLatestAvg, \
 PostalCodeAddressSerializer, \
 BuildingGeometryPolygonSerializer
 from django.db.models import OuterRef, Subquery, Max, F, Avg
@@ -189,7 +190,7 @@ class latest_prices(ListAPIView):
         return queryset
 
 
-""" class latest_avg_per_block(ListAPIView):
+class latest_avg_per_block(ListAPIView):
     def get_serializer_class(self):
         # check for params
         full_info = self.request.query_params.get('fullinfo', None)
@@ -197,32 +198,32 @@ class latest_prices(ListAPIView):
             return ResaleTransactionSerializerFull
         return ResaleTransactionSerializerBlockLatestAvg
     
-    def get_queryset(self):
-        # check for params
-        sort_by = self.request.query_params.get('sortby', None)
+    def get_queryset(self):        
+        """
+        Find the latest price for each category + type, then group by store
+        and calculate the average price.
+        """
+        # Subquery to get the latest price for each category and type combination
+        latest_prices = ResaleTransaction.objects.filter(
+            town=OuterRef('town'),
+            flat_type=OuterRef('flat_type'),
+            block=OuterRef('block'),
+            street_name=OuterRef('street_name'),
+            floor_area_sqm=OuterRef('floor_area_sqm'),
+            flat_model=OuterRef('flat_model'),
+            storey_range=OuterRef('storey_range'),
+        ).order_by('-id')  # Assuming 'id' increments with time (latest product has highest id)
 
-        latest_transaction_per_unit = ResaleTransaction.objects \
-            .distinct(
-                "town",
-                "flat_type",
-                "block",
-                "street_name",
-                "floor_area_sqm",
-                "flat_model",
-                "storey_range",) \
-            .order_by(
-                "town",
-                "flat_type",
-                "block",
-                "street_name",
-                "floor_area_sqm",
-                "flat_model",
-                "storey_range",
-                "-id")
-        
-        # use aggregate
-        queryset = []
-        if sort_by:
-            return ResaleTransaction.objects.filter(id__in=Subquery(queryset.only("id"))).order_by(sort_by)
+        # Annotate each product with its latest price (using Subquery)
+        transactions_with_latest_price = ResaleTransaction.objects.annotate(
+            latest_price=Subquery(latest_prices.values('resale_price')[:1])
+        )
 
-        return queryset """
+        # Now, group by 'store' and calculate the average of the latest prices
+        return transactions_with_latest_price.values(
+            'town',
+            'block',
+            'street_name'
+        ).annotate(
+            average_latest_price=Avg('latest_price')
+        )
