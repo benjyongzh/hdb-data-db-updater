@@ -225,6 +225,8 @@ class latest_avg_per_block(ListAPIView):
             .values('town','block','street_name') \
             .annotate(average_latest_price=Avg('resale_price'))
         
+        # TODO add URL param for seeing only data from past few months?
+        
         filter_fields = {
             'town': 'town__iexact',    # Case-insensitive category match
             'block': 'block__iexact',    # Case-insensitive category match
