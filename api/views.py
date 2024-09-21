@@ -199,31 +199,37 @@ class latest_avg_per_block(ListAPIView):
         return ResaleTransactionSerializerBlockLatestAvg
     
     def get_queryset(self):        
-        """
-        Find the latest price for each category + type, then group by store
-        and calculate the average price.
-        """
-        # Subquery to get the latest price for each category and type combination
-        latest_prices = ResaleTransaction.objects.filter(
-            town=OuterRef('town'),
-            flat_type=OuterRef('flat_type'),
-            block=OuterRef('block'),
-            street_name=OuterRef('street_name'),
-            floor_area_sqm=OuterRef('floor_area_sqm'),
-            flat_model=OuterRef('flat_model'),
-            storey_range=OuterRef('storey_range'),
-        ).order_by('-id')  # Assuming 'id' increments with time (latest product has highest id)
+        # get all latest prices per unit
+        queryset = ResaleTransaction.objects \
+            .distinct(
+                "town",
+                "flat_type",
+                "block",
+                "street_name",
+                "floor_area_sqm",
+                "storey_range",) \
+            .order_by(
+                "town",
+                "flat_type",
+                "block",
+                "street_name",
+                "floor_area_sqm",
+                "storey_range",
+                "-id")
+        
+        # Now, group by townn, block and street_name and calculate the average of the latest resale prices
+        queryset = ResaleTransaction.objects \
+            .filter(id__in=Subquery(queryset.only("id"))) \
+            .values('town','block','street_name') \
+            .annotate(average_latest_price=Avg('resale_price'))
+        
+        filter_fields = {
+            'town': 'town__iexact',    # Case-insensitive category match
+            'block': 'block__iexact',    # Case-insensitive category match
+            'max_price': 'average_latest_price__lte',         # Price less than or equal to
+            'min_price': 'average_latest_price__gte',         # Price greater than or equal to
+        }
 
-        # Annotate each product with its latest price (using Subquery)
-        transactions_with_latest_price = ResaleTransaction.objects.annotate(
-            latest_price=Subquery(latest_prices.values('resale_price')[:1])
-        )
+        queryset = filter_queryset(queryset, self.request.query_params, filter_fields)
 
-        # Now, group by 'store' and calculate the average of the latest prices
-        return transactions_with_latest_price.values(
-            'town',
-            'block',
-            'street_name'
-        ).annotate(
-            average_latest_price=Avg('latest_price')
-        )
+        return queryset
