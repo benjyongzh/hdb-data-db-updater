@@ -22,6 +22,7 @@ class get_all_resale_prices(ListAPIView):
         queryset = ResaleTransaction.objects.all()
         filter_fields = {
             'town': 'town__iexact',    # Case-insensitive category match
+            'block': 'block__iexact',    # Case-insensitive category match
             'max_price': 'resale_price__lte',         # Price less than or equal to
             'min_price': 'resale_price__gte',         # Price greater than or equal to
             'flat_type': 'flat_type__iexact'
@@ -175,6 +176,7 @@ class latest_prices(ListAPIView):
 
         filter_fields = {
             'town': 'town__iexact',    # Case-insensitive category match
+            'block': 'block__iexact',    # Case-insensitive category match
             'max_price': 'resale_price__lte',         # Price less than or equal to
             'min_price': 'resale_price__gte',         # Price greater than or equal to
             'flat_type': 'flat_type__iexact'
