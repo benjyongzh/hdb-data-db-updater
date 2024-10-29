@@ -21,6 +21,7 @@ celery = "*"
 redis = "*"
 celery-progress = "*"
 shapely = "*"
+djangorestframework-gis = "*"
 
 [dev-packages]
 

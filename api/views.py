@@ -9,7 +9,8 @@ ResaleTransactionSerializerBlockAverage, \
 ResaleTransactionSerializerUnitAverage, \
 ResaleTransactionSerializerBlockLatestAvg, \
 PostalCodeAddressSerializer, \
-BuildingGeometryPolygonSerializer
+BuildingGeometryPolygonSerializer, \
+PolygonPriceSerializer
 from django.db.models import OuterRef, Subquery, Max, F, Avg
 from django.core.exceptions import ObjectDoesNotExist
 from .utils import filter_queryset,filter_storey
@@ -237,3 +238,13 @@ class latest_avg_per_block(ListAPIView):
         queryset = filter_queryset(queryset, self.request.query_params, filter_fields)
 
         return queryset
+    
+class polygon_price_per_block(ListAPIView):
+    serializer_class = PolygonPriceSerializer
+    queryset = PostalCodeAddress.objects.all().with_geometry().with_latest_price().order_by("id")
+
+    def get_serializer_context(self):
+        # Pass the zoom level to the serializer context
+        # zoom_level = int(self.request.query_params.get('zoom', 12))
+        zoom_level = 1
+        return {'zoom_level': zoom_level}

@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.gis.db import models
 from django.core.exceptions import ValidationError
+from .managers import PostalCodeAddressQuerySet
 
 def postal_code_validation(value:str):
     if len(value) != 6 or not value.isdigit():
@@ -20,11 +21,14 @@ class PostalCodeAddress(models.Model):
     
     def address(self):
         return f"{self.block} {self.street_name}"
+    
+    # Use the custom QuerySet for the model
+    objects = PostalCodeAddressQuerySet.as_manager()
 
 class BuildingGeometryPolygon(models.Model):
     block = models.CharField(max_length=4, db_index=True)
     postal_code = models.CharField(validators=[postal_code_validation], db_index=True)
-    postal_code_key = models.ForeignKey(PostalCodeAddress, related_name='buildinggeometrypolygons', default=None, on_delete=models.PROTECT, null=True)
+    postal_code_key = models.ForeignKey('postalcodes.PostalCodeAddress', related_name='buildinggeometrypolygons', default=None, on_delete=models.PROTECT, null=True)
     building_polygon = models.PolygonField()
 
     def __str__(self):
