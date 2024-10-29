@@ -1,19 +1,23 @@
 from django.db.models import Subquery, OuterRef, DecimalField, Value, Avg
 from django.db.models.functions import Coalesce
-from django.contrib.gis.geos import GEOSGeometry
 from django.contrib.gis.db import models
 from django.apps import apps  # Required for lazy import
+from django.contrib.gis.db.models import GeometryField
+from django.db.models import Func
 
 class PostalCodeAddressQuerySet(models.QuerySet):
 
-    def with_geometry(self, tolerance=1):
+    def with_geometry(self, zoom_level):
         BuildingGeometryPolygon = apps.get_model('postalcodes', 'BuildingGeometryPolygon')
         queryset = BuildingGeometryPolygon.objects.filter(postal_code_key=OuterRef('pk')).values('building_polygon')
+
+        # Determine the simplification tolerance based on the zoom level
+        tolerance = self.get_tolerance_from_zoom(zoom_level)
         
         return self.annotate(
         # Simplify the geometry using ST_Simplify with the given tolerance
         # Apply simplification to the geometry
-            simplified_geometry=GEOSGeometry.simplify(Subquery(queryset),tolerance)
+            simplified_geometry=Simplify(Subquery(queryset),tolerance)
         )
 
     def with_latest_price(self):
@@ -48,3 +52,12 @@ class PostalCodeAddressQuerySet(models.QuerySet):
                 Value(0,output_field=DecimalField(max_digits=12, decimal_places=2))
             )
         )
+    
+    def get_tolerance_from_zoom(self, zoom_level):
+        return max(0.001, 0.01 * (15 - zoom_level))
+    
+
+    # Custom Simplify class that wraps ST_Simplify (PostGIS function)
+class Simplify(Func):
+    function = 'ST_Simplify'
+    output_field = GeometryField()
