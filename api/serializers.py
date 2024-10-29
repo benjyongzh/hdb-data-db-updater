@@ -1,4 +1,6 @@
 from rest_framework import serializers
+from rest_framework_gis.serializers import GeoFeatureModelSerializer
+from rest_framework_gis.fields import GeometryField
 from resaletransactions.models import ResaleTransaction
 from postalcodes.models import PostalCodeAddress, BuildingGeometryPolygon
 from timestamps.models import TablesLastUpdated
@@ -9,7 +11,7 @@ class ResaleTransactionSerializerBlock(serializers.ModelSerializer):
     postal_code = serializers.CharField(source='postal_code_key.postal_code', read_only=True)
     class Meta:
         model = ResaleTransaction
-        fields = ('id', 'block', 'street_name', 'resale_price', 'postal_code')
+        fields = ('id', 'block', 'street_name', 'resale_price', 'postal_code',)
 
 class ResaleTransactionSerializerUnit(serializers.ModelSerializer):
     postal_code = serializers.CharField(source='postal_code_key.postal_code', read_only=True)
@@ -72,13 +74,17 @@ class BuildingGeometryPolygonSerializer(serializers.ModelSerializer):
         return mapping(simplified_polygon)
     
 class PolygonPriceSerializer(GeoFeatureModelSerializer):
-    simplified_geometry = serializers.SerializerMethodField()
+    latest_price = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+    geometry = GeometryField(source='simplified_geometry', read_only=True)
+    # simplified_geometry = serializers.SerializerMethodField()
+
     class Meta:
         model = PostalCodeAddress
-        geo_field = 'simplified_geometry'  # The GeoJSON geometry field
-        fields = ('id', 'block', 'street_name', 'postal_code', 'latest_price')  # Include the latest price dynamically
+        geo_field = 'geometry'  # The GeoJSON geometry field
+        fields = ('id', 'block', 'street_name', 'postal_code', 'geometry', 'latest_price')  # Include the latest price dynamically
 
-    def get_geometry(self, obj):
+    """
+    def get_simplified_geometry(self, obj):
         # Get the zoom level from the context (default to 12 if not provided)
         zoom_level = self.context.get('zoom_level', 12)
         simplify_factor = max(0.001, 0.01 * (15 - zoom_level))
@@ -91,6 +97,7 @@ class PolygonPriceSerializer(GeoFeatureModelSerializer):
         simplified_polygon = polygon.simplify(simplify_factor, preserve_topology=True)
 
         return mapping(simplified_polygon)
+        """
 
 class TablesLastUpdatedSerializer(serializers.ModelSerializer):
     class Meta:

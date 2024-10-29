@@ -1,16 +1,19 @@
 from django.db.models import Subquery, OuterRef, DecimalField, Value, Avg
 from django.db.models.functions import Coalesce
+from django.contrib.gis.geos import GEOSGeometry
 from django.contrib.gis.db import models
-# from .models import BuildingGeometryPolygon
 from django.apps import apps  # Required for lazy import
 
 class PostalCodeAddressQuerySet(models.QuerySet):
 
-    def with_geometry(self):
+    def with_geometry(self, tolerance=1):
         BuildingGeometryPolygon = apps.get_model('postalcodes', 'BuildingGeometryPolygon')
         queryset = BuildingGeometryPolygon.objects.filter(postal_code_key=OuterRef('pk')).values('building_polygon')
+        
         return self.annotate(
-            geometry=Subquery(queryset, output_field=models.PolygonField())
+        # Simplify the geometry using ST_Simplify with the given tolerance
+        # Apply simplification to the geometry
+            simplified_geometry=GEOSGeometry.simplify(Subquery(queryset),tolerance)
         )
 
     def with_latest_price(self):
@@ -40,5 +43,8 @@ class PostalCodeAddressQuerySet(models.QuerySet):
             .values('average_latest_price')[:1]
         
         return self.annotate(
-            latest_price=Coalesce(Subquery(latest_price, output_field=DecimalField()), Value(0))
+            latest_price=Coalesce(
+                Subquery(latest_price, output_field=DecimalField(max_digits=12, decimal_places=2)),
+                Value(0,output_field=DecimalField(max_digits=12, decimal_places=2))
+            )
         )
