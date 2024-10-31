@@ -1,4 +1,5 @@
 from rest_framework.generics import ListAPIView
+from rest_framework.views import APIView
 from resaletransactions.models import ResaleTransaction
 from rest_framework.exceptions import NotFound
 from postalcodes.models import PostalCodeAddress, BuildingGeometryPolygon
@@ -14,7 +15,9 @@ PolygonPriceSerializer
 from django.db.models import OuterRef, Subquery, Max, F, Avg
 from django.core.exceptions import ObjectDoesNotExist
 from .utils import filter_queryset,filter_storey
-from datetime import datetime, timedelta
+from datetime import datetime
+from django.http import StreamingHttpResponse
+import json
 
 class get_all_resale_prices(ListAPIView):
     serializer_class = ResaleTransactionSerializerFull
@@ -249,3 +252,28 @@ class polygon_price_per_block(ListAPIView):
         return {'zoom_level': zoom_level}
     
     queryset = PostalCodeAddress.objects.all().with_geometry().with_latest_price().order_by("id")
+
+# curl -X GET http://localhost:9000/api/polygons/latest-avg/
+class stream_polygon_price_per_block(APIView):
+    def get(self, request, *args, **kwargs):
+        # Return StreamingHttpResponse with generator as content
+        response = StreamingHttpResponse(self.generate_data(), content_type="application/json")
+        response['Cache-Control'] = 'no-cache'
+        return response
+
+    def get_serializer_context(self):
+        # Pass the zoom level to the serializer context
+        # zoom_level = int(self.request.query_params.get('zoom', 12))
+        zoom_level = 1
+        return {'zoom_level': zoom_level}
+    
+    def generate_data(self):
+        # Queryset based on original ListAPIView
+        queryset = PostalCodeAddress.objects.all().with_geometry().with_latest_price().order_by("id")
+
+        # Serialize each item in the queryset individually
+        for item in queryset:
+            # Use context if necessary
+            serializer = PolygonPriceSerializer(item, context=self.get_serializer_context())
+            yield json.dumps(serializer.data) + "\n"  # Send each item as JSON
+    

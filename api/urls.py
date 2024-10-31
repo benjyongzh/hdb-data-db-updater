@@ -9,5 +9,5 @@ urlpatterns = [
      path('resale-transactions/average/', views.average_prices.as_view(), name='list-resaletransactions-average'),
      path('resale-transactions/latest/', views.latest_prices.as_view(), name='list-resaletransactions-latest'),
      path('resale-transactions/latest-avg/', views.latest_avg_per_block.as_view(), name='list-resaletransactions-latest-average'),
-     path('polygons/latest-avg/', views.polygon_price_per_block.as_view(), name='list-polygons-latest-average'),
+     path('polygons/latest-avg/', views.stream_polygon_price_per_block.as_view(), name='list-polygons-latest-average'),
 ]
