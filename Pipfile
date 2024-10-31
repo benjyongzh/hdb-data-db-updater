@@ -22,6 +22,7 @@ redis = "*"
 celery-progress = "*"
 shapely = "*"
 djangorestframework-gis = "*"
+django-cors-headers = "*"
 
 [dev-packages]
 

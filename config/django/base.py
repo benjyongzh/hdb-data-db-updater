@@ -51,6 +51,8 @@ INSTALLED_APPS = [
 	'celery',
 	'celery_progress',
 
+    'corsheaders',
+
 ]
 
 MIDDLEWARE = [
@@ -62,6 +64,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',  # Add CORS middleware
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -160,3 +163,16 @@ CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
+
+# Allow specific origins (you can also allow all origins by setting '*' but it's not secure for production)
+CORS_ALLOWED_ORIGINS = [
+    env('CORS_FRONTEND_URL'),  # React frontend URL
+    # 'https://your-frontend-domain.com',  # If deployed
+]
+
+# Allow specific headers if needed (for example for API keys)
+CORS_ALLOW_HEADERS = [
+    'authorization',
+    'content-type',
+    'backend-api-key',
+]
