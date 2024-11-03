@@ -104,3 +104,8 @@ class TablesLastUpdatedSerializer(serializers.ModelSerializer):
     class Meta:
         model = TablesLastUpdated
         fields= '__all__'
+
+class FlatTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ResaleTransaction
+        fields= ['flat_type']

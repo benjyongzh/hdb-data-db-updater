@@ -1,5 +1,6 @@
 from rest_framework.generics import ListAPIView
 from rest_framework.views import APIView
+from rest_framework.response import Response
 from resaletransactions.models import ResaleTransaction
 from rest_framework.exceptions import NotFound
 from postalcodes.models import PostalCodeAddress, BuildingGeometryPolygon
@@ -11,7 +12,8 @@ ResaleTransactionSerializerUnitAverage, \
 ResaleTransactionSerializerBlockLatestAvg, \
 PostalCodeAddressSerializer, \
 BuildingGeometryPolygonSerializer, \
-PolygonPriceSerializer
+PolygonPriceSerializer, \
+FlatTypeSerializer
 from django.db.models import OuterRef, Subquery, Max, F, Avg
 from django.core.exceptions import ObjectDoesNotExist
 from .utils import filter_queryset,filter_storey
@@ -277,3 +279,9 @@ class stream_polygon_price_per_block(APIView):
             serializer = PolygonPriceSerializer(item, context=self.get_serializer_context())
             yield json.dumps(serializer.data) + "\n"  # Send each item as JSON
     
+class flat_types(APIView):
+    def get(self, request):
+        response = []
+        queryset = ResaleTransaction.objects.distinct("flat_type")
+        response = [flat.flat_type for flat in queryset]
+        return Response({"results": response})
