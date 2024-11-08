@@ -16,34 +16,48 @@ class PostalCodeAddressQuerySet(models.QuerySet):
 
     def with_latest_price(self):
         ResaleTransaction = apps.get_model('resaletransactions', 'ResaleTransaction')  # Lazy import of FlatPrice from other app
-        queryset = ResaleTransaction.objects \
-            .distinct(
-                "town",
-                "flat_type",
-                "block",
-                "street_name",
-                "floor_area_sqm",
-                "storey_range",) \
-            .order_by(
-                "town",
-                "flat_type",
-                "block",
-                "street_name",
-                "floor_area_sqm",
-                "storey_range",
-                "-id")
+        # queryset = ResaleTransaction.objects \
+        #     .distinct(
+        #         "town",
+        #         "flat_type",
+        #         "block",
+        #         "street_name",
+        #         "floor_area_sqm",
+        #         "storey_range",) \
+        #     .order_by(
+        #         "town",
+        #         "flat_type",
+        #         "block",
+        #         "street_name",
+        #         "floor_area_sqm",
+        #         "storey_range",
+        #         "-id")
         
         # Now, group by townn, block and street_name and calculate the average of the latest resale prices
-        latest_price = ResaleTransaction.objects \
-            .filter(id__in=Subquery(queryset.only("id"))) \
+        # latest_price = ResaleTransaction.objects \
+        #     .filter(id__in=Subquery(queryset.only("id"))) \
+        #     .values('town','block','street_name') \
+        #     .annotate(average_latest_price=Avg('resale_price')) \
+        #     .values('average_latest_price')[:1]
+        
+        # queryset = ResaleTransaction.objects.filter(postal_code_key=OuterRef('pk')) \
+        #     .values('town','block','street_name') \
+        #     .annotate(average_latest_price=Avg('resale_price')) \
+        #     .values('average_latest_price')[:1]
+            # .aggregate(Avg("resale_price", default=0))
+        
+        # print(queryset)
+        # TODO fix latest_price always being same number
+        return self.annotate(
+            latest_price= Subquery(ResaleTransaction.objects.filter(postal_code_key=OuterRef('pk')) \
             .values('town','block','street_name') \
             .annotate(average_latest_price=Avg('resale_price')) \
-            .values('average_latest_price')[:1]
-        
-        return self.annotate(
-            latest_price=Coalesce(
-                Subquery(latest_price, output_field=DecimalField(max_digits=12, decimal_places=2)),
-                Value(0,output_field=DecimalField(max_digits=12, decimal_places=2))
-            )
+            .values('average_latest_price'))
         )
+        # return self.annotate(
+        #     latest_price=Coalesce(
+        #         Subquery(latest_price, output_field=DecimalField(max_digits=12, decimal_places=2)),
+        #         Value(0,output_field=DecimalField(max_digits=12, decimal_places=2))
+        #     )
+        # )
     
