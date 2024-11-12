@@ -17,9 +17,7 @@ class PostalCodeAddressQuerySet(models.QuerySet):
         )
 
     def with_latest_price(self):
-        ResaleTransaction = apps.get_model('resaletransactions', 'ResaleTransaction')  # Lazy import of FlatPrice from other app  
-        # TODO fix latest_price always being same number
-            
+        # ResaleTransaction = apps.get_model('resaletransactions', 'ResaleTransaction')  # Lazy import of FlatPrice from other app
         # queryset = ResaleTransaction.objects \
         #     .distinct(
         #         'postal_code_key',
@@ -88,23 +86,30 @@ class PostalCodeAddressQuerySet(models.QuerySet):
         # print("SQL Query Results:", results)
 
         # Step 2: Map the SQL results to a dictionary for fast lookup
-        average_prices = {
-            row[0]: row[1] if row[1] is not None else None  # (postal_code_key_id) -> average_price
+        average_prices = [
+            # row[0]: row[1]
+            row[1] if row[1] is not None else None
             for row in results
-        }
+        ]
+        # print(average_prices)
 
-        print(list(average_prices.items()))
+        postal_code_price_dict = {}
+        for index_block, postal_code in enumerate(list(self.values_list("postal_code",flat=True))):
+            for index_price, price in enumerate(average_prices):
+                if index_block == index_price:
+                    postal_code_price_dict[postal_code] = price
+                    break
+        # print(postal_code_price_dict)
 
         # Step 3: Use Case/When expressions to annotate `self` with the average price
         annotations = [
             When(
-                postal_code=postal_code_key_id,
-                then=Value(average_price, output_field=DecimalField(max_digits=12, decimal_places=2))
+                postal_code=postalcode,
+                then=Value(postal_code_price_dict[postalcode], output_field=DecimalField(max_digits=12, decimal_places=2))
             )
-            for postal_code_key_id, average_price in list(average_prices.items()) if average_price is not None
+            for postalcode in postal_code_price_dict
         ]
 
         return self.annotate(
             latest_price=Case(*annotations, default=Value(0, output_field=DecimalField(max_digits=12, decimal_places=2)))
-            # ! always getting default only
         )
