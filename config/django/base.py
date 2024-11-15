@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'common',
     'resaletransactions',
     'postalcodes',
+    'mrtstations',
     # 'debug_toolbar',
     'rest_framework',
     'django.contrib.gis',

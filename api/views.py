@@ -285,3 +285,8 @@ class flat_types(APIView):
         queryset = ResaleTransaction.objects.distinct("flat_type")
         response = [flat.flat_type for flat in queryset]
         return Response({"results": response})
+    
+class get_mrt_stations(ListAPIView):   
+    # queryset = PostalCodeAddress.objects.all().order_by("id")
+    # serializer_class = PostalCodeAddressSerializer
+    pass

@@ -6,6 +6,7 @@ from postalcodes.models import PostalCodeAddress, BuildingGeometryPolygon
 from timestamps.models import TablesLastUpdated
 from shapely.geometry import shape, mapping
 from shapely.wkb import loads as load_wkb
+from mrtstations.models import MrtStation
 
 class ResaleTransactionSerializerBlock(serializers.ModelSerializer):
     postal_code = serializers.CharField(source='postal_code_key.postal_code', read_only=True)
@@ -108,4 +109,9 @@ class TablesLastUpdatedSerializer(serializers.ModelSerializer):
 class FlatTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = ResaleTransaction
+        fields= ['flat_type']
+
+class MrtStationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MrtStation
         fields= ['flat_type']

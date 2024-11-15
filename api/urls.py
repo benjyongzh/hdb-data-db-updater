@@ -11,4 +11,5 @@ urlpatterns = [
      path('resale-transactions/latest-avg/', views.latest_avg_per_block.as_view(), name='list-resaletransactions-latest-average'),
      path('polygons/latest-avg/', views.stream_polygon_price_per_block.as_view(), name='list-polygons-latest-average'),
      path('flat-types/', views.flat_types.as_view(), name='list-flat-types'),
+     path('mrt-stations/', views.get_mrt_stations.as_view(), name='list-mrt-stations'),
 ]
