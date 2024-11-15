@@ -23,6 +23,7 @@ celery-progress = "*"
 shapely = "*"
 djangorestframework-gis = "*"
 django-cors-headers = "*"
+lxml = "*"
 
 [dev-packages]
 

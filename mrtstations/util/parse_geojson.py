@@ -1,6 +1,6 @@
 from django.contrib.gis.geos import Polygon
 import json
-from xml.etree import ElementTree as ET
+from bs4 import BeautifulSoup
 from common.util.utils import remove_z_from_geom_coordinates
 
 def import_new_geojson_features_into_table(
@@ -27,28 +27,12 @@ def import_new_geojson_features_into_table(
     # for each feature, get postalcode
     for feature_index,feature in enumerate(features):
         try:
-            
-        # s = """<table>
-        #   <tr><th>Event</th><th>Start Date</th><th>End Date</th></tr>
-        #   <tr><td>a</td><td>b</td><td>c</td></tr>
-        #   <tr><td>d</td><td>e</td><td>f</td></tr>
-        #   <tr><td>g</td><td>h</td><td>i</td></tr>
-        # </table>
-        # """
 
-        # table = ET.XML(s)
-        # rows = iter(table)
-        # headers = [col.text for col in next(rows)]
-        # for row in rows:
-        #     values = [col.text for col in row]
-        #     print(dict(zip(headers, values)))
-
-        # {'End Date': 'c', 'Start Date': 'b', 'Event': 'a'}
-        # {'End Date': 'f', 'Start Date': 'e', 'Event': 'd'}
-        # {'End Date': 'i', 'Start Date': 'h', 'Event': 'g'}
             original_description = feature['description']
-            table = ET.XML(original_description)
-            rows = iter(table)
+            station_info = parse_description(original_description)
+            name=station_info["NAME"]
+            rail_type=station_info["RAIL_TYPE"]
+            ground_level=station_info["GRND_LEVEL"]
 
         except(ValueError, KeyError) as e:
             print(f"Error for feature {feature_index}: {e}")
@@ -68,7 +52,7 @@ def import_new_geojson_features_into_table(
             final_geom = Polygon(geom_coordinates)
         except (SyntaxError, ValueError, IndexError) as e:
             print(f"""
-                    Error for feature {feature_index} (block {block_number}, postal code {postal_code}) in making Polygon object:
+                    Error for feature {feature_index} ({name} MRT station) in making Polygon object:
                     {e}
                     Original coordinates:
                     {geom['coordinates']}
@@ -101,3 +85,11 @@ def import_new_geojson_features_into_table(
 
     return features
 
+def parse_description(string):
+    rows = BeautifulSoup(string, "lxml")("tr")
+    content = {}
+    for row in rows[1:]:
+        header = str(row("th")).split("&lt;")[0].split("[<th>")[1]
+        data = str(row("td")).split("&lt;")[0].split("[<td>")[1]
+    content[header]= data
+    return content
