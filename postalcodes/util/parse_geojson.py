@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup
 from postalcodes.models import BuildingGeometryPolygon
 from django.contrib.gis.geos import Polygon
 import json
+from common.util.utils import remove_z_from_geom_coordinates
 
 def get_postal_code_from_feature(feature) -> str:
     description = feature['properties']['Description']
@@ -102,18 +103,7 @@ def import_new_geojson_features_into_table(
 
     return features
 
-def remove_z_from_geom_coordinates(coords):
-    arr = coords[0]
-    arr2 = []
-    while len(arr) < 3 and len(arr[0]) != 3:
-        arr = arr[0]
-    for point in arr:
-        try:
-            point = [point[0], point[1]]
-            arr2.append(point)
-        except(IndexError) as e:
-            print(f"Error in removing Z of coordinates: {e}")
-    return arr2
+
 
 '''
 geom = {

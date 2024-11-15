@@ -36,3 +36,16 @@ def update_tableA_FK_match_with_tableB_PK_on_matching_columns(table_a_name:str, 
             FROM {table_b_name} b
             WHERE {where_clause}
         """)
+
+def remove_z_from_geom_coordinates(coords):
+    arr = coords[0]
+    arr2 = []
+    while len(arr) < 3 and len(arr[0]) != 3:
+        arr = arr[0]
+    for point in arr:
+        try:
+            point = [point[0], point[1]]
+            arr2.append(point)
+        except(IndexError) as e:
+            print(f"Error in removing Z of coordinates: {e}")
+    return arr2
