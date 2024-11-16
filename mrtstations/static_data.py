@@ -1,18 +1,18 @@
-# TODO static list of mrt stations here
+# static list of mrt stations here
 LINES= {
-    "NSL": {"name": "NORTH-SOUTH LINE", "colour": "Red"},
-    "EWL": {"name": "EAST-WEST LINE", "colour": "Green"},
-    "CGL": {"name": "CHANGI LINE", "colour": "Green"},
-    "NEL": {"name": "NORTH-EAST LINE", "colour": "Purple"},
-    "CCL": {"name": "CIRCLE LINE", "colour": "Orange"},
-    "DTL": {"name": "DOWNTOWN LINE", "colour": "Blue"},
-    "TEL": {"name": "THOMSON-EAST COAST LINE", "colour": "Brown"},
-    "CRL": {"name": "CROSS-ISLAND LINE", "colour": "Teal"},
-    "CPL": {"name": "CROSS-ISLAND-PUNGGOL LINE", "colour": "Teal"},
-    "JRL": {"name": "JURONG REGION LINE", "colour": "Grey"},
-    "BPML": {"name": "BUKIT PANJANG LRT", "colour": "Light Blue"},
-    "SPL": {"name": "SENGKANG LRT", "colour": "Light Purple"},
-    "PGL": {"name": "PUNGGOL LRT", "colour": "Light Pink"}
+    "NSL": {"name": "NORTH-SOUTH LINE", "colour": "d42e12"},
+    "EWL": {"name": "EAST-WEST LINE", "colour": "009645"},
+    "CGL": {"name": "CHANGI LINE", "colour": "009645"},
+    "NEL": {"name": "NORTH-EAST LINE", "colour": "9900aa"},
+    "CCL": {"name": "CIRCLE LINE", "colour": "fa9e0d"},
+    "DTL": {"name": "DOWNTOWN LINE", "colour": "005ec4"},
+    "TEL": {"name": "THOMSON-EAST COAST LINE", "colour": "9D5B25"},
+    "CRL": {"name": "CROSS-ISLAND LINE", "colour": "97C616"},
+    "CPL": {"name": "CROSS-ISLAND-PUNGGOL LINE", "colour": "97C616"},
+    "JRL": {"name": "JURONG REGION LINE", "colour": "0099aa"},
+    "BPML": {"name": "BUKIT PANJANG LRT", "colour": "768579"},
+    "SPL": {"name": "SENGKANG LRT", "colour": "768579"},
+    "PGL": {"name": "PUNGGOL LRT", "colour": "768579"}
   }
 
 STATIONS= {
@@ -224,7 +224,7 @@ STATIONS= {
     "JELAPANG": ["BPML"],
     "SENJA": ["BPML"],
 
-    # TODO CRL
+    # CRL
     "ELIAS": ["CPL"],
     "CHANGI AIRPORT TERMINNAL FIVE": ["CRL", "TEL"],
     "AVIATION PARK": ["CRL"],
@@ -243,8 +243,7 @@ STATIONS= {
     "JURONG PIER": ["CRL", "JRL"],
     # 2 STOPS BETWEEN JURONG PIER AND GUL CIRCLE
 
-
-    # TODO JRL
+    # JRL
     "CHOA CHU KANG WEST": ["JRL"],
     "TENGAH": ["JRL"],
     "HONG KAH": ["JRL"],
