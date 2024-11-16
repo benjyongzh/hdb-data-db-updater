@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from resaletransactions.models import ResaleTransaction
 from rest_framework.exceptions import NotFound
 from postalcodes.models import PostalCodeAddress, BuildingGeometryPolygon
+from mrtstations.models import MrtStation
 from .serializers import ResaleTransactionSerializerBlock, \
 ResaleTransactionSerializerUnit, \
 ResaleTransactionSerializerFull, \
@@ -13,7 +14,8 @@ ResaleTransactionSerializerBlockLatestAvg, \
 PostalCodeAddressSerializer, \
 BuildingGeometryPolygonSerializer, \
 PolygonPriceSerializer, \
-FlatTypeSerializer
+FlatTypeSerializer, \
+MrtStationSerializer
 from django.db.models import OuterRef, Subquery, Max, F, Avg
 from django.core.exceptions import ObjectDoesNotExist
 from .utils import filter_queryset,filter_storey
@@ -287,6 +289,6 @@ class flat_types(APIView):
         return Response({"results": response})
     
 class get_mrt_stations(ListAPIView):   
-    # queryset = PostalCodeAddress.objects.all().order_by("id")
-    # serializer_class = PostalCodeAddressSerializer
+    queryset = MrtStation.objects.all()
+    serializer_class = MrtStationSerializer
     pass

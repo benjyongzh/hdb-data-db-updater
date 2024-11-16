@@ -114,4 +114,4 @@ class FlatTypeSerializer(serializers.ModelSerializer):
 class MrtStationSerializer(serializers.ModelSerializer):
     class Meta:
         model = MrtStation
-        fields= ['flat_type']
+        fields= '__all__'
