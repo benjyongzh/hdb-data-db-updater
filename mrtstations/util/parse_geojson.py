@@ -28,14 +28,14 @@ def import_new_geojson_features_into_table(
     for feature_index,feature in enumerate(features):
         try:
 
-            original_description = feature['description']
+            original_description = feature['properties']['Description']
             station_info = parse_description(original_description)
             name=station_info["NAME"]
             rail_type=station_info["RAIL_TYPE"]
             ground_level=station_info["GRND_LEVEL"]
 
         except(ValueError, KeyError) as e:
-            print(f"Error for feature {feature_index}: {e}")
+            print(f"Key-value Error for feature {feature_index}: {e}")
             continue
 
         db_row = model_object.objects.filter(name__exact=name).first()
@@ -89,7 +89,7 @@ def parse_description(string):
     rows = BeautifulSoup(string, "lxml")("tr")
     content = {}
     for row in rows[1:]:
-        header = str(row("th")).split("&lt;")[0].split("[<th>")[1]
-        data = str(row("td")).split("&lt;")[0].split("[<td>")[1]
-    content[header]= data
+        header = str(row("th")).split("&lt;")[0].split("[<th>")[1].split("</th>]")[0]
+        data = str(row("td")).split("&lt;")[0].split("[<td>")[1].split("</td>]")[0]
+        content[header]= data
     return content
