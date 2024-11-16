@@ -7,6 +7,7 @@ from timestamps.models import TablesLastUpdated
 from shapely.geometry import shape, mapping
 from shapely.wkb import loads as load_wkb
 from mrtstations.models import MrtStation
+from mrtstations.static_data import LINES, STATIONS
 
 class ResaleTransactionSerializerBlock(serializers.ModelSerializer):
     postal_code = serializers.CharField(source='postal_code_key.postal_code', read_only=True)
@@ -112,6 +113,11 @@ class FlatTypeSerializer(serializers.ModelSerializer):
         fields= ['flat_type']
 
 class MrtStationSerializer(serializers.ModelSerializer):
+    line_info = serializers.SerializerMethodField()
     class Meta:
         model = MrtStation
-        fields= '__all__'
+        fields = ("name", 'rail_type', 'building_polygon', 'line_info',)
+
+    def get_line_info(self, obj):
+        # TODO arrange objects for name and colour
+        return LINES.get(obj.name, {})
