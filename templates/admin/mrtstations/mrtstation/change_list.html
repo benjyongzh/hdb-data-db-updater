@@ -1,0 +1,35 @@
+{% extends "admin/change_list.html" %} {% load static %} {% block content %}
+
+<style>
+  .not-visible {
+    display: none;
+  }
+
+  .row-container {
+    justify-content: start;
+    align-items: center;
+    max-width: 500px;
+    padding: 12px 0px;
+  }
+
+  .custom-button {
+    padding: 8px 20px 11px 20px;
+    outline: none;
+    border-width: 0px;
+    border-radius: 4px;
+    background-color: rgb(64, 118, 144);
+    cursor: pointer;
+  }
+
+  .custom-button:hover {
+    background-color: rgb(38, 75, 93);
+  }
+</style>
+
+<div class="row-container">
+  <a class="custom-button" href="upload-geojson/" style="color: white"
+    >Upload a geojson file</a
+  >
+</div>
+
+{{ block.super }} {% endblock %}
