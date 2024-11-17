@@ -67,7 +67,7 @@ STATIONS= {
     "CANBERRA": ["NSL"],
     "YISHUN": ["NSL"],
     "KHATIB": ["NSL"],
-    "ANG MO KIO INTERCHANGE": ["NSL", "CRL"],
+    "ANG MO KIO": ["NSL", "CRL"],
     "BISHAN": ["NSL", "CCL"],
     "BRADDELL": ["NSL"],
     "TOA PAYOH": ["NSL"],
