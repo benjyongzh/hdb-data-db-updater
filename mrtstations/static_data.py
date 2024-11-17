@@ -2,16 +2,16 @@
 LINES= {
     "NSL": {"name": "NORTH-SOUTH LINE", "colour": "d42e12"},
     "EWL": {"name": "EAST-WEST LINE", "colour": "009645"},
-    "CGL": {"name": "CHANGI LINE", "colour": "009645"},
-    "NEL": {"name": "NORTH-EAST LINE", "colour": "9900aa"},
+    "CGL": {"name": "EAST-WEST CHANGI LINE", "colour": "009645"},
+    "NEL": {"name": "NORTH EAST LINE", "colour": "9900aa"},
     "CCL": {"name": "CIRCLE LINE", "colour": "fa9e0d"},
     "DTL": {"name": "DOWNTOWN LINE", "colour": "005ec4"},
     "TEL": {"name": "THOMSON-EAST COAST LINE", "colour": "9D5B25"},
-    "CRL": {"name": "CROSS-ISLAND LINE", "colour": "97C616"},
-    "CPL": {"name": "CROSS-ISLAND-PUNGGOL LINE", "colour": "97C616"},
+    "CRL": {"name": "CROSS ISLAND LINE", "colour": "97C616"},
+    "CPL": {"name": "CROSS ISLAND PUNGGOL LINE", "colour": "97C616"},
     "JRL": {"name": "JURONG REGION LINE", "colour": "0099aa"},
-    "BPML": {"name": "BUKIT PANJANG LRT", "colour": "768579"},
-    "SPL": {"name": "SENGKANG LRT", "colour": "768579"},
+    "BPL": {"name": "BUKIT PANJANG LRT", "colour": "768579"},
+    "SKL": {"name": "SENGKANG LRT", "colour": "768579"},
     "PGL": {"name": "PUNGGOL LRT", "colour": "768579"}
   }
 
@@ -57,7 +57,7 @@ STATIONS= {
 # NSL
     "BUKIT BATOK": ["NSL"],
     "BUKIT GOMBAK": ["NSL"],
-    "CHOA CHU KANG": ["NSL", "JRL", "BPML"],
+    "CHOA CHU KANG": ["NSL", "JRL", "BPL"],
     "YEW TEE": ["NSL"],
     "KRANJI": ["NSL"],
     "MARSILING": ["NSL"],
@@ -82,7 +82,7 @@ STATIONS= {
 # NEL
     "PUNGGOL COAST": ["NEL"],
     "PUNGGOL": ["NEL", "PGL", "CPL"],
-    "SENGKANG": ["NEL", "SPL"],
+    "SENGKANG": ["NEL", "SKL"],
     "BUANGKOK": ["NEL"],
     "HOUGANG": ["NEL", "CRL"],
     "KOVAN": ["NEL"],
@@ -96,20 +96,20 @@ STATIONS= {
     "CHINATOWN": ["NEL", "DTL"],
     "HARBOURFRONT": ["NEL", "CCL"],
 
-# SPL
-    "COMPASSVALE": ["SPL"],
-    "RUMBIA": ["SPL"],
-    "BAKAU": ["SPL"],
-    "KANGKAR": ["SPL"],
-    "RANGGUNG": ["SPL"],
-    "CHENG LIM": ["SPL"],
-    "FARMWAY": ["SPL"],
-    "KUPANG": ["SPL"],
-    "THANGGAM": ["SPL"],
-    "FERNVALE": ["SPL"],
-    "LAYAR": ["SPL"],
-    "TONGKANG": ["SPL"],
-    "RENJONG": ["SPL"],
+# SKL
+    "COMPASSVALE": ["SKL"],
+    "RUMBIA": ["SKL"],
+    "BAKAU": ["SKL"],
+    "KANGKAR": ["SKL"],
+    "RANGGUNG": ["SKL"],
+    "CHENG LIM": ["SKL"],
+    "FARMWAY": ["SKL"],
+    "KUPANG": ["SKL"],
+    "THANGGAM": ["SKL"],
+    "FERNVALE": ["SKL"],
+    "LAYAR": ["SKL"],
+    "TONGKANG": ["SKL"],
+    "RENJONG": ["SKL"],
 
 # PGL
     "COVE": ["PGL"],
@@ -156,7 +156,7 @@ STATIONS= {
     "BAYFRONT": ["CCL","DTL"],
 
 # DTL
-    "BUKIT PANJANG": ["DTL", "BPML"],
+    "BUKIT PANJANG": ["DTL", "BPL"],
     "CASHEW": ["DTL"],
     "HILLVIEW": ["DTL"],
     "HUME": ["DTL"],
@@ -211,18 +211,18 @@ STATIONS= {
     "BAYSHORE": ["TEL"],
     "BEDOK SOUTH": ["TEL"],
 
-# BPML
-    "SOUTH VIEW": ["BPML"],
-    "KEAT HONG": ["BPML"],
-    "TECK WHYE": ["BPML"],
-    "PHOENIX": ["BPML"],
-    "PETIR": ["BPML"],
-    "PENDING": ["BPML"],
-    "BANGKIT": ["BPML"],
-    "FAJAR": ["BPML"],
-    "SEGAR": ["BPML"],
-    "JELAPANG": ["BPML"],
-    "SENJA": ["BPML"],
+# BPL
+    "SOUTH VIEW": ["BPL"],
+    "KEAT HONG": ["BPL"],
+    "TECK WHYE": ["BPL"],
+    "PHOENIX": ["BPL"],
+    "PETIR": ["BPL"],
+    "PENDING": ["BPL"],
+    "BANGKIT": ["BPL"],
+    "FAJAR": ["BPL"],
+    "SEGAR": ["BPL"],
+    "JELAPANG": ["BPL"],
+    "SENJA": ["BPL"],
 
     # CRL
     "ELIAS": ["CPL"],

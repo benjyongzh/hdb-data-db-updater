@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import MrtStation
+from .models import MrtStation, Line
 from django.shortcuts import render
 from django.urls import path
 from common.forms import FileUploadForm, process_file_upload
@@ -10,6 +10,10 @@ from celery_progress.backend import ProgressRecorder
 from io import BytesIO
 
 # Register your models here.
+@admin.register(Line)
+class BuildingGeometryPolygonAdmin(admin.ModelAdmin):
+    list_display = ['name', 'abbreviation', 'color']
+
 @admin.register(MrtStation)
 class BuildingGeometryPolygonAdmin(admin.ModelAdmin):
     list_display = ['name', 'rail_type']
@@ -43,7 +47,7 @@ class BuildingGeometryPolygonAdmin(admin.ModelAdmin):
 def upload_geojson_impl(self, geojson_file):
     progress_recorder = ProgressRecorder(self)
 
-    steps_remaining:int = 2
+    steps_remaining:int = 3
 
     with BytesIO(geojson_file) as file:
         geojson_features = import_new_geojson_features_into_table(
@@ -56,6 +60,7 @@ def upload_geojson_impl(self, geojson_file):
 
     total_steps = steps_remaining + len(geojson_features)
 
+    # TODO lookup mrt lines table to insert relation for each station to its mrt line? based on static_data?
     # progress_recorder.set_progress(total_steps-2, total_steps, description="Updating Foreign Keys")
 
     # update_tableA_FK_match_with_tableB_PK_on_matching_columns(
