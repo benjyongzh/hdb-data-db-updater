@@ -93,3 +93,17 @@ def parse_description(string):
         data = str(row("td")).split("&lt;")[0].split("[<td>")[1].split("</td>]")[0]
         content[header]= data
     return content
+
+def add_line_relationship(model_a, model_b, static_data):
+    # model_a is stations
+    # model b is lines
+    for key, value in static_data.items():
+        stations = model_a.objects.filter(name__contains=key)
+        if not stations.exists():
+            print(f"{key} station not found in mrtstations database")
+            continue
+        lines = model_b.objects.filter(abbreviation__in=value)
+        if not lines.exists():
+            print(f"{key}'s lines not found in lines database")
+            continue
+        stations.lines.add(lines)

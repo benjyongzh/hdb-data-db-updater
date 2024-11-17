@@ -3,11 +3,12 @@ from .models import MrtStation, Line
 from django.shortcuts import render
 from django.urls import path
 from common.forms import FileUploadForm, process_file_upload
-from .util.parse_geojson import import_new_geojson_features_into_table
+from .util.parse_geojson import import_new_geojson_features_into_table, add_line_relationship
 from common.util.utils import update_timestamps_table_lastupdated, get_table_lastupdated_datetime
 from celery import shared_task
 from celery_progress.backend import ProgressRecorder
 from io import BytesIO
+from .static_data import STATIONS
 
 # Register your models here.
 @admin.register(Line)
@@ -61,8 +62,9 @@ def upload_geojson_impl(self, geojson_file):
     total_steps = steps_remaining + len(geojson_features)
 
     # TODO lookup mrt lines table to insert relation for each station to its mrt line? based on static_data?
-    # progress_recorder.set_progress(total_steps-2, total_steps, description="Updating Foreign Keys")
+    progress_recorder.set_progress(total_steps-2, total_steps, description="Updating relationships between each station and each line")
 
+    add_line_relationship(MrtStation, Line, STATIONS)
     # update_tableA_FK_match_with_tableB_PK_on_matching_columns(
     #     table_a_name="postalcodes_buildinggeometrypolygon",
     #     table_b_name="postalcodes_postalcodeaddress",
