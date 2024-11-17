@@ -2,6 +2,8 @@ from django.contrib.gis.geos import Polygon
 import json
 from bs4 import BeautifulSoup
 from common.util.utils import remove_z_from_geom_coordinates
+from mrtstations.static_data import STATIONS
+from mrtstations.models import Line
 
 def import_new_geojson_features_into_table(
     model_object,
@@ -61,16 +63,6 @@ def import_new_geojson_features_into_table(
                 """)
             continue
 
-        # create new row with block + postalcode + geometry,
-        # use SELECT ST_GeomFromGeoJSON to convert from geojson to postGIS geom,
-        # ST_AsText,
-        # ST_AsGeoJSON to convert from postGIS geom to geojson
-        # new_polygon = {
-        #     "block": block_number,
-        #     "postal_code": postal_code,
-        #     "building_polygon": final_geom
-        # }
-
         polygons.append(model_object(
                 name=name,
                 rail_type = rail_type,#MRT or LRT
@@ -78,10 +70,14 @@ def import_new_geojson_features_into_table(
                 building_polygon = final_geom
             ))
         
+        
         if progress_recorder != None:
             progress_recorder.set_progress(feature_index, len(features) + steps_remaining, description=f"Inserting Geojson item {feature_index} out of {len(features)}")
         
     model_object.objects.bulk_create(polygons)
+
+    # TODO add_line_relationship here? add in progress recorder as a dependency to update too. check total length of progress
+    add_line_relationship(model_object, Line, STATIONS)
 
     return features
 
@@ -99,11 +95,11 @@ def add_line_relationship(model_a, model_b, static_data):
     # model b is lines
     for key, value in static_data.items():
         stations = model_a.objects.filter(name__contains=key)
-        if not stations.exists():
+        if not stations:
             print(f"{key} station not found in mrtstations database")
             continue
         lines = model_b.objects.filter(abbreviation__in=value)
-        if not lines.exists():
+        if not lines:
             print(f"{key}'s lines not found in lines database")
             continue
         stations.lines.add(lines)
