@@ -4,7 +4,7 @@ from django.shortcuts import render
 from django.urls import path
 from common.forms import FileUploadForm, process_file_upload
 from .util.parse_geojson import import_new_geojson_features_into_table
-from common.util.utils import update_timestamps_table_lastupdated, get_table_lastupdated_datetime,update_tableA_FK_match_with_tableB_PK_on_matching_columns
+from common.util.utils import update_timestamps_table_lastupdated, get_table_lastupdated_datetime
 from celery import shared_task
 from celery_progress.backend import ProgressRecorder
 from io import BytesIO

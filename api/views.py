@@ -291,4 +291,3 @@ class flat_types(APIView):
 class get_mrt_stations(ListAPIView):   
     queryset = MrtStation.objects.all()
     serializer_class = MrtStationSerializer
-    pass
