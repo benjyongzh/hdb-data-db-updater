@@ -1,4 +1,6 @@
 from django.contrib.gis.geos import Polygon
+from django.db import connection
+from mrtstations.models import MrtStation
 import json
 from bs4 import BeautifulSoup
 from common.util.utils import remove_z_from_geom_coordinates
@@ -89,6 +91,70 @@ def parse_description(string):
         data = str(row("td")).split("&lt;")[0].split("[<td>")[1].split("</td>]")[0]
         content[header]= data
     return content
+
+def merge_polygons(table_name:str):
+    with connection.cursor() as cursor:
+        # Step 1: Identify names with duplicate entries
+        cursor.execute("""
+            SELECT name
+            FROM %s
+            GROUP BY name
+            HAVING COUNT(*) > 1
+        """, [table_name])
+        duplicate_names = cursor.fetchall()
+
+        for name_tuple in duplicate_names:
+            station_name = name_tuple[0]
+
+            # Step 2: Fetch geometries for this name
+            cursor.execute("""
+                SELECT id, building_polygon
+                FROM %s
+                WHERE name = %s
+            """, [table_name,station_name])
+            rows = cursor.fetchall()
+
+            # Step 3: Merge overlapping polygons using ST_Union
+            cursor.execute("""
+                SELECT ST_Union(building_polygon)
+                FROM %s
+                WHERE name = %s
+            """, [table_name, station_name])
+            merged_geometry = cursor.fetchone()[0]
+
+            # Step 4: Check if merged geometry differs from original count
+            cursor.execute("""
+                SELECT COUNT(DISTINCT building_polygon)
+                FROM (
+                    SELECT (ST_Dump(building_polygon)).geom AS building_polygon
+                    FROM %s
+                    WHERE name = %s
+                ) AS dumped
+            """, [table_name, station_name])
+            distinct_geometry_count = cursor.fetchone()[0]
+
+            # Step 5: Insert merged geometries and clean up original rows
+            if distinct_geometry_count == 1:
+                # All polygons are merged into one
+                cursor.execute("""
+                    DELETE FROM %s WHERE name = %s
+                """, [table_name, station_name])
+                cursor.execute("""
+                    INSERT INTO %s (name, building_polygon)
+                    VALUES (%s, %s)
+                """, [table_name, station_name, merged_geometry])
+            else:
+                # Some polygons are distinct, keep them separate
+                cursor.execute("""
+                    DELETE FROM %s WHERE name = %s
+                """, [table_name, station_name])
+                for row in rows:
+                    cursor.execute("""
+                        INSERT INTO %s (name, building_polygon)
+                        VALUES (%s, %s)
+                    """, [table_name, station_name, row[1]])
+
+        print("Polygons merged successfully!")
 
 def add_line_relationship(model_a, model_b, static_data):
     # model_a is stations
