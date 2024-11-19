@@ -79,7 +79,7 @@ def import_new_geojson_features_into_table(
     model_object.objects.bulk_create(polygons)
 
     # TODO add_line_relationship here? add in progress recorder as a dependency to update too. check total length of progress
-    add_line_relationship(model_object, Line, STATIONS)
+    # add_line_relationship(model_object, Line, STATIONS)
 
     return features
 
@@ -92,69 +92,95 @@ def parse_description(string):
         content[header]= data
     return content
 
-def merge_polygons(table_name:str):
+def merge_polygons(table_name, name_col, geometry_col, rail_type_col, ground_level_col):
+    """
+    Merges overlapping polygons for entries with the same name while retaining attributes.
+    
+    Args:
+        table_name (str): The name of the database table.
+        name_col (str): The name of the column storing station names.
+        geometry_col (str): The name of the geometry column.
+        rail_type_col (str): The name of the column storing rail type ("MRT"/"LRT").
+        ground_level_col (str): The name of the column storing ground level ("UNDERGROUND"/"ABOVEGROUND").
+    """
     with connection.cursor() as cursor:
-        # Step 1: Identify names with duplicate entries
-        cursor.execute("""
-            SELECT name
-            FROM %s
-            GROUP BY name
+        # Step 1: Identify duplicate names
+        duplicate_names_query = """
+            SELECT {name_col}
+            FROM {table_name}
+            GROUP BY {name_col}
             HAVING COUNT(*) > 1
-        """, [table_name])
+        """.format(table_name=table_name, name_col=name_col)
+        cursor.execute(duplicate_names_query)
         duplicate_names = cursor.fetchall()
 
         for name_tuple in duplicate_names:
-            station_name = name_tuple[0]
+            name = name_tuple[0]
 
-            # Step 2: Fetch geometries for this name
-            cursor.execute("""
-                SELECT id, building_polygon
-                FROM %s
-                WHERE name = %s
-            """, [table_name,station_name])
-            rows = cursor.fetchall()
+            # Step 2: Fetch rail_type and ground_level (assuming consistency)
+            fetch_attributes_query = """
+                SELECT {rail_type_col}, {ground_level_col}
+                FROM {table_name}
+                WHERE {name_col} = %s
+                LIMIT 1
+            """.format(table_name=table_name, name_col=name_col, rail_type_col=rail_type_col, ground_level_col=ground_level_col)
+            cursor.execute(fetch_attributes_query, [name])
+            rail_type, ground_level = cursor.fetchone()
 
-            # Step 3: Merge overlapping polygons using ST_Union
-            cursor.execute("""
-                SELECT ST_Union(building_polygon)
-                FROM %s
-                WHERE name = %s
-            """, [table_name, station_name])
+            # Step 3: Merge geometries for this name
+            merge_geometries_query = """
+                SELECT ST_Union({geometry_col})
+                FROM {table_name}
+                WHERE {name_col} = %s
+            """.format(table_name=table_name, name_col=name_col, geometry_col=geometry_col)
+            cursor.execute(merge_geometries_query, [name])
             merged_geometry = cursor.fetchone()[0]
 
-            # Step 4: Check if merged geometry differs from original count
-            cursor.execute("""
-                SELECT COUNT(DISTINCT building_polygon)
+            # Step 4: Count distinct polygons to handle non-overlapping cases
+            distinct_geometry_query = """
+                SELECT COUNT(DISTINCT {geometry_col})
                 FROM (
-                    SELECT (ST_Dump(building_polygon)).geom AS building_polygon
-                    FROM %s
-                    WHERE name = %s
+                    SELECT (ST_Dump({geometry_col})).geom AS {geometry_col}
+                    FROM {table_name}
+                    WHERE {name_col} = %s
                 ) AS dumped
-            """, [table_name, station_name])
+            """.format(table_name=table_name, name_col=name_col, geometry_col=geometry_col)
+            cursor.execute(distinct_geometry_query, [name])
             distinct_geometry_count = cursor.fetchone()[0]
 
-            # Step 5: Insert merged geometries and clean up original rows
-            if distinct_geometry_count == 1:
-                # All polygons are merged into one
-                cursor.execute("""
-                    DELETE FROM %s WHERE name = %s
-                """, [table_name, station_name])
-                cursor.execute("""
-                    INSERT INTO %s (name, building_polygon)
-                    VALUES (%s, %s)
-                """, [table_name, station_name, merged_geometry])
-            else:
-                # Some polygons are distinct, keep them separate
-                cursor.execute("""
-                    DELETE FROM %s WHERE name = %s
-                """, [table_name, station_name])
-                for row in rows:
-                    cursor.execute("""
-                        INSERT INTO %s (name, building_polygon)
-                        VALUES (%s, %s)
-                    """, [table_name, station_name, row[1]])
+            # Step 5: Insert merged or original geometries and remove old rows
+            delete_original_query = """
+                DELETE FROM {table_name} WHERE {name_col} = %s
+            """.format(table_name=table_name, name_col=name_col)
+            cursor.execute(delete_original_query, [name])
 
-        print("Polygons merged successfully!")
+            if distinct_geometry_count == 1:
+                # All polygons merged into one
+                insert_merged_query = """
+                    INSERT INTO {table_name} ({name_col}, {geometry_col}, {rail_type_col}, {ground_level_col})
+                    VALUES (%s, %s, %s, %s)
+                """.format(table_name=table_name, name_col=name_col, geometry_col=geometry_col, 
+                           rail_type_col=rail_type_col, ground_level_col=ground_level_col)
+                cursor.execute(insert_merged_query, [name, merged_geometry, rail_type, ground_level])
+            else:
+                # Polygons are distinct, keep them separate
+                fetch_geometries_query = """
+                    SELECT {geometry_col}
+                    FROM {table_name}
+                    WHERE {name_col} = %s
+                """.format(table_name=table_name, name_col=name_col, geometry_col=geometry_col)
+                cursor.execute(fetch_geometries_query, [name])
+                geometries = cursor.fetchall()
+
+                for geometry in geometries:
+                    insert_distinct_query = """
+                        INSERT INTO {table_name} ({name_col}, {geometry_col}, {rail_type_col}, {ground_level_col})
+                        VALUES (%s, %s, %s, %s)
+                    """.format(table_name=table_name, name_col=name_col, geometry_col=geometry_col, 
+                               rail_type_col=rail_type_col, ground_level_col=ground_level_col)
+                    cursor.execute(insert_distinct_query, [name, geometry[0], rail_type, ground_level])
+
+        print("Polygons merged successfully with attributes!")
 
 def add_line_relationship(model_a, model_b, static_data):
     # model_a is stations

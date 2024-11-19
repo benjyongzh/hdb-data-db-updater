@@ -61,7 +61,7 @@ def upload_geojson_impl(self, geojson_file):
     total_steps = steps_remaining + len(geojson_features)
 
     progress_recorder.set_progress(total_steps-2, total_steps, description="Merging polygons of same stations, if possible...")
-    merge_polygons("mrtstations_mrtstation")
+    merge_polygons("mrtstations_mrtstation", "name", "building_polygon", "rail_type", "ground_level")
 
     progress_recorder.set_progress(total_steps-1, total_steps, description="Updating timestamp of last update of mrtstation table")
         
