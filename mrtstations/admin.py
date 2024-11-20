@@ -47,7 +47,7 @@ class BuildingGeometryPolygonAdmin(admin.ModelAdmin):
 def upload_geojson_impl(self, geojson_file):
     progress_recorder = ProgressRecorder(self)
 
-    steps_remaining:int = 2
+    total_big_steps:int = 3
 
     with BytesIO(geojson_file) as file:
         geojson_features = import_new_geojson_features_into_table(
@@ -55,20 +55,20 @@ def upload_geojson_impl(self, geojson_file):
             file,
             progress_record={
                 'progress_recorder': progress_recorder,
-                'steps_remaining': steps_remaining
+                'total_big_steps': total_big_steps
             })
 
-    total_steps = steps_remaining + len(geojson_features)
+    merge_polygons_with_intersection_logic(MrtStation,progress_record={
+                'progress_recorder': progress_recorder,
+                'total_big_steps': total_big_steps
+            })
 
-    progress_recorder.set_progress(total_steps-2, total_steps, description="Merging polygons of same stations, if possible...")
-    merge_polygons_with_intersection_logic(MrtStation)
-
-    progress_recorder.set_progress(total_steps-1, total_steps, description="Updating timestamp of last update of mrtstation table")
+    progress_recorder.set_progress(1, 2, description=f"Step {total_big_steps} out of {total_big_steps}: Updating timestamp of last update of mrtstation table")
         
     # update table timestamp    
     # return {'table_last_updated': update_timestamps_table_lastupdated("postalcodes_buildinggeometrypolygon")}
     update_timestamps_table_lastupdated("mrtstations_mrtstation")
 
-    progress_recorder.set_progress(total_steps, total_steps, description="Finishing up")
+    progress_recorder.set_progress(2, 2, description="Finishing up")
 
     return "Geojson database update completed!"

@@ -9,7 +9,7 @@ def import_new_geojson_features_into_table(
     geojson_file,
     progress_record={
         'progress_recorder': None,
-        'steps_remaining': 0
+        'total_big_steps': 0
     }):
 
     try:
@@ -23,7 +23,6 @@ def import_new_geojson_features_into_table(
     polygons = []
 
     progress_recorder = progress_record['progress_recorder']
-    steps_remaining = progress_record['steps_remaining']
 
     # for each feature, get postalcode
     for feature_index,feature in enumerate(features):
@@ -71,7 +70,7 @@ def import_new_geojson_features_into_table(
         
         
         if progress_recorder != None:
-            progress_recorder.set_progress(feature_index, len(features) + steps_remaining, description=f"Inserting Geojson item {feature_index} out of {len(features)}")
+            progress_recorder.set_progress(feature_index, len(features), description=f"Step 1 out of {progress_record['total_big_steps']}: Inserting Geojson item {feature_index} out of {len(features)}")
         
     model_object.objects.bulk_create(polygons)
 
@@ -89,12 +88,17 @@ def parse_description(string):
         content[header]= data
     return content
 
-def merge_polygons_with_intersection_logic(model_object):
+def merge_polygons_with_intersection_logic(model_object, progress_record={
+        'progress_recorder': None,
+        'total_big_steps': 0
+    }):
     """
     Merges intersecting polygons where name and rail_type are identical.
     If ground_level differs, resulting ground_level is set to 'BOTH'.
     Non-intersecting polygons are retained as separate rows.
     """
+
+    
     # Step 1: Identify groups by name and rail_type
     groups = (
         model_object.objects
@@ -103,7 +107,7 @@ def merge_polygons_with_intersection_logic(model_object):
         .filter(count__gt=1)
     )
 
-    for group in groups:
+    for index, group in enumerate(groups):
         name = group["name"]
         rail_type = group["rail_type"]
 
@@ -149,6 +153,9 @@ def merge_polygons_with_intersection_logic(model_object):
         # Step 5: Delete old rows and insert new ones
         model_object.objects.filter(name=name, rail_type=rail_type).delete()
         model_object.objects.bulk_create(new_rows)
+        
+        if progress_record['progress_recorder'] != None:
+            progress_record['progress_recorder'].set_progress(index, len(groups), description=f"Step 2 out of {progress_record['total_big_steps']}: Merging polygons of {name} station, if possible")
 
     print("Polygons merged successfully based on intersection logic!")
 
