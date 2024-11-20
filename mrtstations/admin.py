@@ -3,7 +3,7 @@ from .models import MrtStation, Line
 from django.shortcuts import render
 from django.urls import path
 from common.forms import FileUploadForm, process_file_upload
-from .util.parse_geojson import import_new_geojson_features_into_table,merge_polygons
+from .util.parse_geojson import import_new_geojson_features_into_table, merge_polygons_with_intersection_logic
 from common.util.utils import update_timestamps_table_lastupdated, get_table_lastupdated_datetime
 from celery import shared_task
 from celery_progress.backend import ProgressRecorder
@@ -61,7 +61,7 @@ def upload_geojson_impl(self, geojson_file):
     total_steps = steps_remaining + len(geojson_features)
 
     progress_recorder.set_progress(total_steps-2, total_steps, description="Merging polygons of same stations, if possible...")
-    merge_polygons("mrtstations_mrtstation", "name", "building_polygon", "rail_type", "ground_level")
+    merge_polygons_with_intersection_logic(MrtStation)
 
     progress_recorder.set_progress(total_steps-1, total_steps, description="Updating timestamp of last update of mrtstation table")
         

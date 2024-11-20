@@ -1,11 +1,8 @@
-from django.contrib.gis.geos import Polygon
-from django.db import connection
-from mrtstations.models import MrtStation
+from django.contrib.gis.geos import Polygon, GEOSGeometry
 import json
 from bs4 import BeautifulSoup
 from common.util.utils import remove_z_from_geom_coordinates
-from mrtstations.static_data import STATIONS
-from mrtstations.models import Line
+from django.db.models import Count
 
 def import_new_geojson_features_into_table(
     model_object,
@@ -92,95 +89,68 @@ def parse_description(string):
         content[header]= data
     return content
 
-def merge_polygons(table_name, name_col, geometry_col, rail_type_col, ground_level_col):
+def merge_polygons_with_intersection_logic(model_object):
     """
-    Merges overlapping polygons for entries with the same name while retaining attributes.
-    
-    Args:
-        table_name (str): The name of the database table.
-        name_col (str): The name of the column storing station names.
-        geometry_col (str): The name of the geometry column.
-        rail_type_col (str): The name of the column storing rail type ("MRT"/"LRT").
-        ground_level_col (str): The name of the column storing ground level ("UNDERGROUND"/"ABOVEGROUND").
+    Merges intersecting polygons where name and rail_type are identical.
+    If ground_level differs, resulting ground_level is set to 'BOTH'.
+    Non-intersecting polygons are retained as separate rows.
     """
-    with connection.cursor() as cursor:
-        # Step 1: Identify duplicate names
-        duplicate_names_query = """
-            SELECT {name_col}
-            FROM {table_name}
-            GROUP BY {name_col}
-            HAVING COUNT(*) > 1
-        """.format(table_name=table_name, name_col=name_col)
-        cursor.execute(duplicate_names_query)
-        duplicate_names = cursor.fetchall()
+    # Step 1: Identify groups by name and rail_type
+    groups = (
+        model_object.objects
+        .values("name", "rail_type")
+        .annotate(count=Count("id"))
+        .filter(count__gt=1)
+    )
 
-        for name_tuple in duplicate_names:
-            name = name_tuple[0]
+    for group in groups:
+        name = group["name"]
+        rail_type = group["rail_type"]
 
-            # Step 2: Fetch rail_type and ground_level (assuming consistency)
-            fetch_attributes_query = """
-                SELECT {rail_type_col}, {ground_level_col}
-                FROM {table_name}
-                WHERE {name_col} = %s
-                LIMIT 1
-            """.format(table_name=table_name, name_col=name_col, rail_type_col=rail_type_col, ground_level_col=ground_level_col)
-            cursor.execute(fetch_attributes_query, [name])
-            rail_type, ground_level = cursor.fetchone()
+        # Step 2: Retrieve all rows for this group
+        rows = list(
+            model_object.objects.filter(name=name, rail_type=rail_type)
+        )
 
-            # Step 3: Merge geometries for this name
-            merge_geometries_query = """
-                SELECT ST_Union({geometry_col})
-                FROM {table_name}
-                WHERE {name_col} = %s
-            """.format(table_name=table_name, name_col=name_col, geometry_col=geometry_col)
-            cursor.execute(merge_geometries_query, [name])
-            merged_geometry = cursor.fetchone()[0]
+        processed_geometries = []
+        new_rows = []
 
-            # Step 4: Count distinct polygons to handle non-overlapping cases
-            distinct_geometry_query = """
-                SELECT COUNT(DISTINCT {geometry_col})
-                FROM (
-                    SELECT (ST_Dump({geometry_col})).geom AS {geometry_col}
-                    FROM {table_name}
-                    WHERE {name_col} = %s
-                ) AS dumped
-            """.format(table_name=table_name, name_col=name_col, geometry_col=geometry_col)
-            cursor.execute(distinct_geometry_query, [name])
-            distinct_geometry_count = cursor.fetchone()[0]
+        # Step 3: Check and merge intersecting polygons
+        for row in rows:
+            geom = GEOSGeometry(row.building_polygon)
+            found_intersection = False
 
-            # Step 5: Insert merged or original geometries and remove old rows
-            delete_original_query = """
-                DELETE FROM {table_name} WHERE {name_col} = %s
-            """.format(table_name=table_name, name_col=name_col)
-            cursor.execute(delete_original_query, [name])
+            for processed in processed_geometries:
+                if geom.intersects(processed["building_polygon"]):
+                    # Merge geometries
+                    processed["building_polygon"] = processed["building_polygon"].union(geom)
+                    # Update ground_level to 'BOTH' if needed
+                    if processed["ground_level"] != row.ground_level:
+                        processed["ground_level"] = "BOTH"
+                    found_intersection = True
+                    break
 
-            if distinct_geometry_count == 1:
-                # All polygons merged into one
-                insert_merged_query = """
-                    INSERT INTO {table_name} ({name_col}, {geometry_col}, {rail_type_col}, {ground_level_col})
-                    VALUES (%s, %s, %s, %s)
-                """.format(table_name=table_name, name_col=name_col, geometry_col=geometry_col, 
-                           rail_type_col=rail_type_col, ground_level_col=ground_level_col)
-                cursor.execute(insert_merged_query, [name, merged_geometry, rail_type, ground_level])
-            else:
-                # Polygons are distinct, keep them separate
-                fetch_geometries_query = """
-                    SELECT {geometry_col}
-                    FROM {table_name}
-                    WHERE {name_col} = %s
-                """.format(table_name=table_name, name_col=name_col, geometry_col=geometry_col)
-                cursor.execute(fetch_geometries_query, [name])
-                geometries = cursor.fetchall()
+            if not found_intersection:
+                # Add as a new processed geometry
+                processed_geometries.append({
+                    "building_polygon": geom,
+                    "ground_level": row.ground_level,
+                })
 
-                for geometry in geometries:
-                    insert_distinct_query = """
-                        INSERT INTO {table_name} ({name_col}, {geometry_col}, {rail_type_col}, {ground_level_col})
-                        VALUES (%s, %s, %s, %s)
-                    """.format(table_name=table_name, name_col=name_col, geometry_col=geometry_col, 
-                               rail_type_col=rail_type_col, ground_level_col=ground_level_col)
-                    cursor.execute(insert_distinct_query, [name, geometry[0], rail_type, ground_level])
+        # Step 4: Prepare rows for insertion
+        for processed in processed_geometries:
+            new_rows.append(model_object(
+                name=name,
+                rail_type=rail_type,
+                ground_level=processed["ground_level"],
+                building_polygon=processed["building_polygon"]
+            ))
 
-        print("Polygons merged successfully with attributes!")
+        # Step 5: Delete old rows and insert new ones
+        model_object.objects.filter(name=name, rail_type=rail_type).delete()
+        model_object.objects.bulk_create(new_rows)
+
+    print("Polygons merged successfully based on intersection logic!")
 
 def add_line_relationship(model_a, model_b, static_data):
     # model_a is stations
