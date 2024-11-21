@@ -3,11 +3,12 @@ from .models import MrtStation, Line
 from django.shortcuts import render
 from django.urls import path
 from common.forms import FileUploadForm, process_file_upload
-from .util.parse_geojson import import_new_geojson_features_into_table, merge_polygons_with_intersection_logic
+from .util.parse_geojson import import_new_geojson_features_into_table, merge_polygons_with_intersection_logic, add_line_relationship
 from common.util.utils import update_timestamps_table_lastupdated, get_table_lastupdated_datetime
 from celery import shared_task
 from celery_progress.backend import ProgressRecorder
 from io import BytesIO
+from mrtstations.static_data import STATIONS
 
 # Register your models here.
 @admin.register(Line)
@@ -47,7 +48,7 @@ class BuildingGeometryPolygonAdmin(admin.ModelAdmin):
 def upload_geojson_impl(self, geojson_file):
     progress_recorder = ProgressRecorder(self)
 
-    total_big_steps:int = 3
+    total_big_steps:int = 4
 
     with BytesIO(geojson_file) as file:
         geojson_features = import_new_geojson_features_into_table(
@@ -64,6 +65,11 @@ def upload_geojson_impl(self, geojson_file):
             })
 
     progress_recorder.set_progress(1, 2, description=f"Step {total_big_steps} out of {total_big_steps}: Updating timestamp of last update of mrtstation table")
+    
+    add_line_relationship(MrtStation, Line, STATIONS, progress_record={
+                'progress_recorder': progress_recorder,
+                'total_big_steps': total_big_steps
+            })
         
     # update table timestamp    
     # return {'table_last_updated': update_timestamps_table_lastupdated("postalcodes_buildinggeometrypolygon")}

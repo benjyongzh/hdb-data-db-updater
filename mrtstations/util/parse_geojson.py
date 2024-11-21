@@ -70,12 +70,9 @@ def import_new_geojson_features_into_table(
         
         
         if progress_recorder != None:
-            progress_recorder.set_progress(feature_index, len(features), description=f"Step 1 out of {progress_record['total_big_steps']}: Inserting Geojson item {feature_index} out of {len(features)}")
+            progress_recorder.set_progress(feature_index, len(features), description=f"Step 1 out of {progress_record['total_big_steps']}: Inserting Geojson item into table")
         
     model_object.objects.bulk_create(polygons)
-
-    # TODO add_line_relationship here? add in progress recorder as a dependency to update too. check total length of progress
-    # add_line_relationship(model_object, Line, STATIONS)
 
     return features
 
@@ -159,10 +156,18 @@ def merge_polygons_with_intersection_logic(model_object, progress_record={
 
     print("Polygons merged successfully based on intersection logic!")
 
-def add_line_relationship(model_a, model_b, static_data):
+def add_line_relationship(model_a, model_b, static_data, progress_record={
+        'progress_recorder': None,
+        'total_big_steps': 0
+    }):
     # model_a is stations
     # model b is lines
+
+    count:int = -1
+    total_key_count:int = len(static_data.keys())
     for key, value in static_data.items():
+        count+=1
+        # TODO think about logic of getting stations of 'key'. what happens if not identical? is 'contains' good?
         stations = model_a.objects.filter(name__contains=key)
         if not stations:
             print(f"{key} station not found in mrtstations database")
@@ -172,3 +177,6 @@ def add_line_relationship(model_a, model_b, static_data):
             print(f"{key}'s lines not found in lines database")
             continue
         stations.lines.add(lines)
+        if progress_record['progress_recorder'] != None:
+            progress_record['progress_recorder'].set_progress(count, total_key_count, description=f"Step 3 out of {progress_record['total_big_steps']}: classifying train line and colour of {key} station")
+        
