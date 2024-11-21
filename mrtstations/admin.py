@@ -13,7 +13,7 @@ from mrtstations.static_data import STATIONS
 # Register your models here.
 @admin.register(Line)
 class BuildingGeometryPolygonAdmin(admin.ModelAdmin):
-    list_display = ['name', 'abbreviation', 'color']
+    list_display = ['name', 'abbreviation', 'rail_type', 'color']
 
 @admin.register(MrtStation)
 class BuildingGeometryPolygonAdmin(admin.ModelAdmin):
