@@ -156,7 +156,7 @@ def merge_polygons_with_intersection_logic(model_object, progress_record={
 
     print("Polygons merged successfully based on intersection logic!")
 
-def add_line_relationship(model_a, model_b, static_data, progress_record={
+def add_line_relationship(model_a, model_b, station_data, line_data, progress_record={
         'progress_recorder': None,
         'total_big_steps': 0
     }):
@@ -164,11 +164,11 @@ def add_line_relationship(model_a, model_b, static_data, progress_record={
     # model b is lines
 
     count:int = -1
-    total_key_count:int = len(static_data.keys())
-    for key, value in static_data.items():
+    total_key_count:int = len(station_data.keys())
+    for key, value in station_data.items():
         count+=1
         # TODO think about logic of getting stations of 'key'. what happens if not identical? is 'contains' good?
-        stations = model_a.objects.filter(name__contains=key)
+        stations = model_a.objects.filter(name=key)
         if not stations:
             print(f"{key} station not found in mrtstations database")
             continue
@@ -176,7 +176,12 @@ def add_line_relationship(model_a, model_b, static_data, progress_record={
         if not lines:
             print(f"{key}'s lines not found in lines database")
             continue
-        stations.lines.add(lines)
+        
+        # ! how to account for stuff like sengkang vs sengkkang central for LRT?
+        for station in stations:
+            for line in lines:
+                if station.rail_type == line.rail_type:
+                    station.lines.add(line)
         if progress_record['progress_recorder'] != None:
             progress_record['progress_recorder'].set_progress(count, total_key_count, description=f"Step 3 out of {progress_record['total_big_steps']}: classifying train line and colour of {key} station")
         
