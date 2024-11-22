@@ -8,7 +8,7 @@ from common.util.utils import update_timestamps_table_lastupdated, get_table_las
 from celery import shared_task
 from celery_progress.backend import ProgressRecorder
 from io import BytesIO
-from mrtstations.static_data import STATIONS, LINES
+from mrtstations.static_data import STATIONS
 
 # Register your models here.
 @admin.register(Line)
@@ -66,7 +66,7 @@ def upload_geojson_impl(self, geojson_file):
 
     progress_recorder.set_progress(1, 2, description=f"Step {total_big_steps} out of {total_big_steps}: Updating timestamp of last update of mrtstation table")
     
-    add_line_relationship(MrtStation, Line, STATIONS, LINES, progress_record={
+    add_line_relationship(MrtStation, Line, STATIONS, progress_record={
                 'progress_recorder': progress_recorder,
                 'total_big_steps': total_big_steps
             })

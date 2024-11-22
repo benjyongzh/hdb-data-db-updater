@@ -156,7 +156,7 @@ def merge_polygons_with_intersection_logic(model_object, progress_record={
 
     print("Polygons merged successfully based on intersection logic!")
 
-def add_line_relationship(model_a, model_b, station_data, line_data, progress_record={
+def add_line_relationship(model_a, model_b, station_data, progress_record={
         'progress_recorder': None,
         'total_big_steps': 0
     }):
