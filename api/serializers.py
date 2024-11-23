@@ -6,8 +6,7 @@ from postalcodes.models import PostalCodeAddress, BuildingGeometryPolygon
 from timestamps.models import TablesLastUpdated
 from shapely.geometry import shape, mapping
 from shapely.wkb import loads as load_wkb
-from mrtstations.models import MrtStation
-from mrtstations.static_data import LINES, STATIONS
+from mrtstations.models import MrtStation, Line
 
 class ResaleTransactionSerializerBlock(serializers.ModelSerializer):
     postal_code = serializers.CharField(source='postal_code_key.postal_code', read_only=True)
@@ -112,12 +111,15 @@ class FlatTypeSerializer(serializers.ModelSerializer):
         model = ResaleTransaction
         fields= ['flat_type']
 
+class LineSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Line
+        fields= '__all__'
+
 class MrtStationSerializer(serializers.ModelSerializer):
-    line_info = serializers.SerializerMethodField()
+    """Serializer for TrainStation with nested TrainLine data."""
+    lines = LineSerializer(many=True)  # Include associated train lines
     class Meta:
         model = MrtStation
-        fields = ("name", 'rail_type', 'building_polygon', 'line_info',)
+        fields = ("name", 'building_polygon', 'lines')
 
-    def get_line_info(self, obj):
-        # TODO arrange objects for name and colour
-        return LINES.get(obj.name, {})

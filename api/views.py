@@ -288,6 +288,7 @@ class flat_types(APIView):
         response = [flat.flat_type for flat in queryset]
         return Response({"results": response})
     
-class get_mrt_stations(ListAPIView):   
-    queryset = MrtStation.objects.all()
+class get_mrt_stations(ListAPIView):       
+    """API endpoint to list all train stations with their lines."""
+    queryset = MrtStation.objects.prefetch_related('lines')  # Optimize query
     serializer_class = MrtStationSerializer
