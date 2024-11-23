@@ -121,7 +121,7 @@ STATIONS= {
     "KADALOOR": ["PGL"],
     "OASIS": ["PGL"],
     "DAMAI": ["PGL"],
-    "SAM KEE": ["PGL"],# TODO SHOWN AS SUM KEE IN DB
+    "SAM KEE": ["PGL"],#! SHOWN AS SUM KEE IN DB
     "TECK LEE": ["PGL"],
     "PUNGGOL POINT": ["PGL"],
     "SAMUDERA": ["PGL"],
@@ -170,7 +170,7 @@ STATIONS= {
     "ROCHOR": ["DTL"],
     "DOWNTOWN": ["DTL"],
     "TELOK AYER": ["DTL"],
-    "FORT CANNING": ["DTL"],#TODO IS SHOWN AS RIVER VALLEY IN DB
+    "FORT CANNING": ["DTL"],#! IS SHOWN AS RIVER VALLEY IN DB
     "BENCOOLEN": ["DTL"],
     "JALAN BESAR": ["DTL"],
     "BENDEMEER": ["DTL"],
