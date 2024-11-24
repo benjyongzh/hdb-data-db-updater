@@ -13,8 +13,8 @@ ResaleTransactionSerializerUnitAverage, \
 ResaleTransactionSerializerBlockLatestAvg, \
 PostalCodeAddressSerializer, \
 BuildingGeometryPolygonSerializer, \
-PolygonPriceSerializer, \
-FlatTypeSerializer, \
+BlockLatestPriceSerializer, \
+BlockSerializer, \
 MrtStationSerializer
 from django.db.models import OuterRef, Subquery, Max, F, Avg
 from django.core.exceptions import ObjectDoesNotExist
@@ -58,8 +58,21 @@ class get_all_postal_codes(ListAPIView):
 
 
 class get_all_building_polygons(ListAPIView):
-    queryset = BuildingGeometryPolygon.objects.all().order_by("id")
-    serializer_class = BuildingGeometryPolygonSerializer
+    def get_queryset(self):
+        # check for params
+        exclude_price:bool = self.request.query_params.get('excludeprice', None)
+        if exclude_price == "true":
+            return PostalCodeAddress.objects.all().with_geometry().order_by("id")
+        else:
+            return BuildingGeometryPolygon.objects.all().order_by("id")
+
+    def get_serializer_class(self):
+        # check for params
+        exclude_price:bool = self.request.query_params.get('excludeprice', None)
+        if exclude_price == "true":
+            return BlockLatestPriceSerializer
+        else:
+            return BuildingGeometryPolygonSerializer
 
     def get_serializer_context(self):
         # Pass the zoom level to the serializer context
@@ -247,7 +260,7 @@ class latest_avg_per_block(ListAPIView):
         return queryset
     
 class polygon_price_per_block(ListAPIView):
-    serializer_class = PolygonPriceSerializer
+    serializer_class = BlockLatestPriceSerializer
 
     def get_serializer_context(self):
         # Pass the zoom level to the serializer context
@@ -258,7 +271,7 @@ class polygon_price_per_block(ListAPIView):
     queryset = PostalCodeAddress.objects.all().with_geometry().with_latest_price().order_by("id")
 
 # curl -X GET http://localhost:9000/api/polygons/latest-avg/
-class stream_polygon_price_per_block(APIView):
+class stream_polygon_per_block(APIView):
     def get(self, request, *args, **kwargs):
         # Return StreamingHttpResponse with generator as content
         response = StreamingHttpResponse(self.generate_data(), content_type="application/json")
@@ -273,12 +286,19 @@ class stream_polygon_price_per_block(APIView):
     
     def generate_data(self):
         # Queryset based on original ListAPIView
-        queryset = PostalCodeAddress.objects.all().with_geometry().with_latest_price().order_by("id")
+        # check for params
+        price = self.request.query_params.get('price', None)
+        if price == "latest-avg":
+            queryset = PostalCodeAddress.objects.all().with_geometry().with_latest_price().order_by("id")
+            serializer_to_use = BlockLatestPriceSerializer
+        else:
+            queryset = PostalCodeAddress.objects.all().with_geometry().order_by("id")
+            serializer_to_use = BlockSerializer
 
         # Serialize each item in the queryset individually
         for item in queryset:
             # Use context if necessary
-            serializer = PolygonPriceSerializer(item, context=self.get_serializer_context())
+            serializer = serializer_to_use(item, context=self.get_serializer_context())
             yield json.dumps(serializer.data) + "\n"  # Send each item as JSON
     
 class flat_types(APIView):

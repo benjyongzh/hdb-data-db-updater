@@ -74,7 +74,7 @@ class BuildingGeometryPolygonSerializer(serializers.ModelSerializer):
 
         return mapping(simplified_polygon)
     
-class PolygonPriceSerializer(GeoFeatureModelSerializer):
+class BlockLatestPriceSerializer(GeoFeatureModelSerializer):
     latest_price = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
     # geometry = GeometryField(precision=4, remove_duplicates=True)
     # geometry = GeometryField()
@@ -84,6 +84,30 @@ class PolygonPriceSerializer(GeoFeatureModelSerializer):
         model = PostalCodeAddress
         geo_field = 'simplified_geometry'  # The GeoJSON geometry field
         fields = ('id', 'block', 'street_name', 'postal_code', 'simplified_geometry', 'latest_price')  # Include the latest price dynamically
+
+    def get_simplified_geometry(self, obj):
+        # Get the zoom level from the context (default to 12 if not provided)
+        zoom_level = self.context.get('zoom_level', 12)
+        simplify_factor = max(0.001, 0.01 * (15 - zoom_level))
+
+        # Extract the geometry from the object and convert it to a Shapely shape
+        geom = obj.geometry  # This is a GEOSGeometry object
+        if geom:
+            polygon = load_wkb(bytes(geom.wkb))  # Convert GEOSGeometry to Shapely using WKB
+            
+            # Simplify the geometry using the calculated simplify factor
+            simplified_polygon = polygon.simplify(simplify_factor, preserve_topology=True)
+
+            return mapping(simplified_polygon)
+        return None
+    
+class BlockSerializer(GeoFeatureModelSerializer):
+    simplified_geometry = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PostalCodeAddress
+        geo_field = 'simplified_geometry'  # The GeoJSON geometry field
+        fields = ('id', 'block', 'street_name', 'postal_code', 'simplified_geometry')  # Include the latest price dynamically
 
     def get_simplified_geometry(self, obj):
         # Get the zoom level from the context (default to 12 if not provided)
