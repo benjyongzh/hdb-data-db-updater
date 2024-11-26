@@ -141,9 +141,41 @@ class LineSerializer(serializers.ModelSerializer):
         fields= '__all__'
 
 class MrtStationSerializer(serializers.ModelSerializer):
+    # TODO have to be as geojson features:
+#     export interface GeoJsonFeature {
+#   id: number;
+#   type: "Feature";
+#   geometry: GeoJsonGeometry;
+#   properties: { [key: string]: any };
+# }
+    
+    type = serializers.SerializerMethodField()
+    geometry = serializers.SerializerMethodField()
+    properties = serializers.SerializerMethodField()
+
     """Serializer for TrainStation with nested TrainLine data."""
-    lines = LineSerializer(many=True)  # Include associated train lines
+    # lines = LineSerializer(many=True)  # Include associated train lines
     class Meta:
         model = MrtStation
-        fields = ("name", 'building_polygon', 'lines')
+        fields = ("id", "type", 'geometry', "properties", 'lines')
 
+    def get_type(self, obj):
+        return "Feature"
+
+    def get_geometry(self, obj):
+        # Get the zoom level from the context (default to 12 if not provided)
+        zoom_level = self.context.get('zoom_level', 12)
+        simplify_factor = max(0.001, 0.01 * (15 - zoom_level))
+
+        # Extract the geometry from the object and convert it to a Shapely shape
+        geom = obj.building_polygon  # This is a GEOSGeometry object
+        polygon = load_wkb(bytes(geom.wkb))  # Convert GEOSGeometry to Shapely using WKB
+        
+        # Simplify the geometry using the calculated simplify factor
+        simplified_polygon = polygon.simplify(simplify_factor, preserve_topology=True)
+
+        return mapping(simplified_polygon)
+
+    def get_properties(self, obj):
+        # ! TypeError: Object of type ManyRelatedManager is not JSON serializable
+        return {"name": obj.name, "lines": obj.lines}
