@@ -140,24 +140,13 @@ class LineSerializer(serializers.ModelSerializer):
         model = Line
         fields= '__all__'
 
-class MrtStationSerializer(serializers.ModelSerializer):
-    # TODO have to be as geojson features:
-#     export interface GeoJsonFeature {
-#   id: number;
-#   type: "Feature";
-#   geometry: GeoJsonGeometry;
-#   properties: { [key: string]: any };
-# }
-    
+class MrtStationSerializer(serializers.ModelSerializer):    
     type = serializers.SerializerMethodField()
     geometry = serializers.SerializerMethodField()
     properties = serializers.SerializerMethodField()
-
-    """Serializer for TrainStation with nested TrainLine data."""
-    # lines = LineSerializer(many=True)  # Include associated train lines
     class Meta:
         model = MrtStation
-        fields = ("id", "type", 'geometry', "properties", 'lines')
+        fields = ("id", "type", 'geometry', "properties")
 
     def get_type(self, obj):
         return "Feature"
@@ -177,5 +166,6 @@ class MrtStationSerializer(serializers.ModelSerializer):
         return mapping(simplified_polygon)
 
     def get_properties(self, obj):
-        # ! TypeError: Object of type ManyRelatedManager is not JSON serializable
-        return {"name": obj.name, "lines": obj.lines}
+        # Use the nested serializer for lines
+        lines = LineSerializer(obj.lines.all(), many=True).data
+        return {"name": obj.name, 'lines': lines}
