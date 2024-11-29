@@ -153,17 +153,17 @@ class MrtStationSerializer(serializers.ModelSerializer):
 
     def get_geometry(self, obj):
         # Get the zoom level from the context (default to 12 if not provided)
-        zoom_level = self.context.get('zoom_level', 12)
-        simplify_factor = max(0.001, 0.01 * (15 - zoom_level))
+        # zoom_level = self.context.get('zoom_level', 12)
+        # simplify_factor = max(0.001, 0.01 * (15 - zoom_level))
 
         # Extract the geometry from the object and convert it to a Shapely shape
         geom = obj.building_polygon  # This is a GEOSGeometry object
         polygon = load_wkb(bytes(geom.wkb))  # Convert GEOSGeometry to Shapely using WKB
         
         # Simplify the geometry using the calculated simplify factor
-        simplified_polygon = polygon.simplify(simplify_factor, preserve_topology=True)
+        # simplified_polygon = polygon.simplify(simplify_factor, preserve_topology=True)
 
-        return mapping(simplified_polygon)
+        return mapping(polygon)
 
     def get_properties(self, obj):
         # Use the nested serializer for lines

@@ -312,9 +312,3 @@ class get_mrt_stations(ListAPIView):
     """API endpoint to list all train stations with their lines."""
     queryset = MrtStation.objects.prefetch_related('lines')  # Optimize query
     serializer_class = MrtStationSerializer
-
-    def get_serializer_context(self):
-        # Pass the zoom level to the serializer context
-        # zoom_level = int(self.request.query_params.get('zoom', 12))
-        zoom_level = 10
-        return {'zoom_level': zoom_level}
