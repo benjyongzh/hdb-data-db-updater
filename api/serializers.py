@@ -75,15 +75,13 @@ class BuildingGeometryPolygonSerializer(serializers.ModelSerializer):
         return mapping(simplified_polygon)
     
 class BlockLatestPriceSerializer(GeoFeatureModelSerializer):
-    latest_price = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
-    # geometry = GeometryField(precision=4, remove_duplicates=True)
-    # geometry = GeometryField()
+    price = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
     simplified_geometry = serializers.SerializerMethodField()
 
     class Meta:
         model = PostalCodeAddress
         geo_field = 'simplified_geometry'  # The GeoJSON geometry field
-        fields = ('id', 'block', 'street_name', 'postal_code', 'simplified_geometry', 'latest_price')  # Include the latest price dynamically
+        fields = ('id', 'block', 'street_name', 'postal_code', 'simplified_geometry', 'price')  # Include the latest price dynamically
 
     def get_simplified_geometry(self, obj):
         # Get the zoom level from the context (default to 12 if not provided)

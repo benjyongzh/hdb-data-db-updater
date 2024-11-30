@@ -1,6 +1,4 @@
-from django.db.models import Subquery, OuterRef, DecimalField, Avg, Value, Case, When ,Q
-from django.db.models.functions import RowNumber,Coalesce
-from django.db.models.expressions import Window
+from django.db.models import Subquery, OuterRef, DecimalField, Avg, Value, Case, When
 from django.contrib.gis.db import models
 from django.apps import apps  # Required for lazy import
 from django.db import connection
@@ -111,5 +109,5 @@ class PostalCodeAddressQuerySet(models.QuerySet):
         ]
 
         return self.annotate(
-            latest_price=Case(*annotations, default=Value(0, output_field=DecimalField(max_digits=12, decimal_places=2)))
+            price=Case(*annotations, default=Value(0, output_field=DecimalField(max_digits=12, decimal_places=2)))
         )
