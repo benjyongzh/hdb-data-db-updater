@@ -54,3 +54,8 @@ def filter_storey(queryset: QuerySet, params: dict):
             except ValueError:
                 return JsonResponse({"error": "Invalid lower storey limit provided."}, status=status.HTTP_400_BAD_REQUEST)
     return filtered_transactions
+
+def format_decimal(value:str, decimal_places:int):
+    decimal:str = "."
+    parts = value.split(decimal)
+    return parts[0] +decimal + parts[1][:decimal_places]

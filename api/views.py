@@ -270,7 +270,7 @@ class polygon_price_per_block(ListAPIView):
     
     queryset = PostalCodeAddress.objects.all().with_geometry().with_latest_price().order_by("id")
 
-# curl -X GET http://localhost:9000/api/polygons/latest-avg/
+#  curl -N http://localhost:9000/api/blocks/
 class stream_polygon_per_block(APIView):
     def get(self, request, *args, **kwargs):
         # Return StreamingHttpResponse with generator as content
@@ -282,18 +282,28 @@ class stream_polygon_per_block(APIView):
         # Pass the zoom level to the serializer context
         # zoom_level = int(self.request.query_params.get('zoom', 12))
         zoom_level = 1
-        return {'zoom_level': zoom_level}
+        get_geometry = self.request.query_params.get('geometry', None)
+        price = self.request.query_params.get('price', None)
+        return {'zoom_level': zoom_level, 'get_geometry': get_geometry, 'price': price}
     
     def generate_data(self):
         # Queryset based on original ListAPIView
+        queryset = PostalCodeAddress.objects.all()
+
         # check for params
+        get_geometry = self.request.query_params.get('geometry', None)
+        if get_geometry == "true":
+            queryset = queryset.with_geometry()
+        
         price = self.request.query_params.get('price', None)
         if price == "latest-avg":
-            queryset = PostalCodeAddress.objects.all().with_geometry().with_latest_price().order_by("id")
-            serializer_to_use = BlockLatestPriceSerializer
-        else:
-            queryset = PostalCodeAddress.objects.all().with_geometry().order_by("id")
-            serializer_to_use = BlockSerializer
+            queryset = queryset.with_latest_price()
+        #     serializer_to_use = BlockLatestPriceSerializer
+        # else:
+        #     serializer_to_use = BlockSerializer
+
+        queryset = queryset.order_by("id")
+        serializer_to_use = BlockSerializer
 
         # Serialize each item in the queryset individually
         for item in queryset:

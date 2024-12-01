@@ -1,12 +1,12 @@
 from rest_framework import serializers
 from rest_framework_gis.serializers import GeoFeatureModelSerializer
-from rest_framework_gis.fields import GeometryField,GeometrySerializerMethodField
 from resaletransactions.models import ResaleTransaction
 from postalcodes.models import PostalCodeAddress, BuildingGeometryPolygon
 from timestamps.models import TablesLastUpdated
-from shapely.geometry import shape, mapping
+from shapely.geometry import mapping
 from shapely.wkb import loads as load_wkb
 from mrtstations.models import MrtStation, Line
+from .utils import format_decimal
 
 class ResaleTransactionSerializerBlock(serializers.ModelSerializer):
     postal_code = serializers.CharField(source='postal_code_key.postal_code', read_only=True)
@@ -100,14 +100,20 @@ class BlockLatestPriceSerializer(GeoFeatureModelSerializer):
         return None
     
 class BlockSerializer(GeoFeatureModelSerializer):
+    # price = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+    price = serializers.SerializerMethodField()
     simplified_geometry = serializers.SerializerMethodField()
 
     class Meta:
         model = PostalCodeAddress
         geo_field = 'simplified_geometry'  # The GeoJSON geometry field
-        fields = ('id', 'block', 'street_name', 'postal_code', 'simplified_geometry')  # Include the latest price dynamically
+        fields = ('id', 'block', 'street_name', 'postal_code', 'simplified_geometry', 'price')  # Include the latest price dynamically
 
     def get_simplified_geometry(self, obj):
+        get_geometry = self.context.get('get_geometry', None)
+        if get_geometry != "true":
+            return None
+        
         # Get the zoom level from the context (default to 12 if not provided)
         zoom_level = self.context.get('zoom_level', 12)
         simplify_factor = max(0.001, 0.01 * (15 - zoom_level))
@@ -123,6 +129,13 @@ class BlockSerializer(GeoFeatureModelSerializer):
             return mapping(simplified_polygon)
         return None
     
+    def get_price(self,obj):
+        price = self.context.get('price', None)
+        if price == None:
+            return None
+        else:
+            return format_decimal(str(obj.price), 2)
+
 class TablesLastUpdatedSerializer(serializers.ModelSerializer):
     class Meta:
         model = TablesLastUpdated
