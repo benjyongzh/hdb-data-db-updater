@@ -22,6 +22,7 @@ from .utils import filter_queryset,filter_storey
 from datetime import datetime
 from django.http import StreamingHttpResponse
 import json
+from django.core.cache import cache
 
 class get_all_resale_prices(ListAPIView):
     serializer_class = ResaleTransactionSerializerFull
@@ -274,6 +275,10 @@ class polygon_price_per_block(ListAPIView):
 class stream_polygon_per_block(APIView):
     def get(self, request, *args, **kwargs):
         # Return StreamingHttpResponse with generator as content
+        # TODO use redis for caching starting geometry data
+        cache_key = "block-geometry"  # Unique key for the dataset
+        cached_data = cache.get(cache_key)
+
         response = StreamingHttpResponse(self.generate_data(), content_type="application/json")
         response['Cache-Control'] = 'no-cache'
         return response
