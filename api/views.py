@@ -279,9 +279,17 @@ class stream_polygon_per_block(APIView):
         cache_key = "block-geometry"  # Unique key for the dataset
         cached_data = cache.get(cache_key)
 
-        response = StreamingHttpResponse(self.generate_data(), content_type="application/json")
-        response['Cache-Control'] = 'no-cache'
-        return response
+        if cached_data:
+            # If cached data exists, stream it
+            response = StreamingHttpResponse((line for line in cached_data.splitlines()), content_type='application/json')
+            response['Cache-Hit'] = 'True'  # Add a custom header to indicate cache hit
+            return response
+
+        else:
+            response = StreamingHttpResponse(self.generate_data(), content_type="application/json")
+            # response['Cache-Control'] = 'no-cache'
+            response['Cache-Hit'] = 'False'  # Add a custom header to indicate cache hit
+            return response
 
     def get_serializer_context(self):
         # Pass the zoom level to the serializer context
