@@ -285,11 +285,19 @@ class stream_polygon_per_block(APIView):
             response['Cache-Hit'] = 'True'  # Add a custom header to indicate cache hit
             return response
 
-        else:
-            response = StreamingHttpResponse(self.generate_data(), content_type="application/json")
-            # response['Cache-Control'] = 'no-cache'
-            response['Cache-Hit'] = 'False'  # Add a custom header to indicate cache hit
-            return response
+
+        cache_buffer = [] # for caching
+
+        response = StreamingHttpResponse(self.generate_data(cache_buffer), content_type="application/json")
+        # response['Cache-Control'] = 'no-cache'
+        response['Cache-Hit'] = 'False'  # Add a custom header to indicate cache hit
+         # Cache the data after streaming completes
+        serialized_data = "".join(cache_buffer)  # Combine buffer into a single string
+        print("cache_buffer", cache_buffer)
+        print("serialized_data", serialized_data)
+        cache.set(cache_key, serialized_data, timeout=3600)
+        print("cache.get", cache.get(cache_key))
+        return response
 
     def get_serializer_context(self):
         # Pass the zoom level to the serializer context
@@ -299,7 +307,7 @@ class stream_polygon_per_block(APIView):
         price = self.request.query_params.get('price', None)
         return {'zoom_level': zoom_level, 'get_geometry': get_geometry, 'price': price}
     
-    def generate_data(self):
+    def generate_data(self, cache_buffer):
         # Queryset based on original ListAPIView
         queryset = PostalCodeAddress.objects.all()
 
@@ -322,7 +330,9 @@ class stream_polygon_per_block(APIView):
         for item in queryset:
             # Use context if necessary
             serializer = serializer_to_use(item, context=self.get_serializer_context())
-            yield json.dumps(serializer.data) + "\n"  # Send each item as JSON
+            line = json.dumps(serializer.data) + "\n" # Send each item as JSON
+            cache_buffer.append(line) #TODO  this is not running. use return? reorganize streamming data to be used in streaminghttpresponse?
+            yield line
     
 class flat_types(APIView):
     def get(self, request):
