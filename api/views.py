@@ -275,7 +275,6 @@ class polygon_price_per_block(ListAPIView):
 class stream_polygon_per_block(APIView):
     def get(self, request, *args, **kwargs):
         # Return StreamingHttpResponse with generator as content
-        # TODO use redis for caching starting geometry data
         cache_key = "block-geometry"  # Unique key for the dataset
         cached_data = cache.get(cache_key)
 
@@ -286,17 +285,9 @@ class stream_polygon_per_block(APIView):
             return response
 
 
-        cache_buffer = [] # for caching
-
-        response = StreamingHttpResponse(self.generate_data(cache_buffer), content_type="application/json")
+        response = StreamingHttpResponse(self.generate_data(cache_key), content_type="application/json")
         # response['Cache-Control'] = 'no-cache'
         response['Cache-Hit'] = 'False'  # Add a custom header to indicate cache hit
-         # Cache the data after streaming completes
-        serialized_data = "".join(cache_buffer)  # Combine buffer into a single string
-        print("cache_buffer", cache_buffer)
-        print("serialized_data", serialized_data)
-        cache.set(cache_key, serialized_data, timeout=3600)
-        print("cache.get", cache.get(cache_key))
         return response
 
     def get_serializer_context(self):
@@ -307,7 +298,7 @@ class stream_polygon_per_block(APIView):
         price = self.request.query_params.get('price', None)
         return {'zoom_level': zoom_level, 'get_geometry': get_geometry, 'price': price}
     
-    def generate_data(self, cache_buffer):
+    def generate_data(self,cache_key):
         # Queryset based on original ListAPIView
         queryset = PostalCodeAddress.objects.all()
 
@@ -326,13 +317,20 @@ class stream_polygon_per_block(APIView):
         queryset = queryset.order_by("id")
         serializer_to_use = BlockSerializer
 
+        cache_buffer = [] # for caching
+
         # Serialize each item in the queryset individually
         for item in queryset:
             # Use context if necessary
             serializer = serializer_to_use(item, context=self.get_serializer_context())
             line = json.dumps(serializer.data) + "\n" # Send each item as JSON
-            cache_buffer.append(line) #TODO  this is not running. use return? reorganize streamming data to be used in streaminghttpresponse?
+            cache_buffer.append(line)
             yield line
+
+         # Cache the data after streaming completes
+        serialized_data = "".join(cache_buffer)  # Combine buffer into a single string
+        cache.set(cache_key, serialized_data, timeout=3600)
+        
     
 class flat_types(APIView):
     def get(self, request):
