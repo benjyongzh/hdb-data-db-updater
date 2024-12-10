@@ -31,7 +31,6 @@ def import_new_geojson_features_into_table(
             original_description = feature['properties']['Description']
             station_info = parse_description(original_description)
             name=station_info["NAME"]
-            # rail_type=station_info["RAIL_TYPE"]
             ground_level=station_info["GRND_LEVEL"]
 
         except(ValueError, KeyError) as e:
@@ -63,7 +62,6 @@ def import_new_geojson_features_into_table(
 
         polygons.append(model_object(
                 name=name,
-                # rail_type = rail_type,#MRT or LRT
                 ground_level = ground_level,#ABOVEGROUND or UNDERGROUND
                 building_polygon = final_geom
             ))
@@ -106,11 +104,9 @@ def merge_polygons_with_intersection_logic(model_object, progress_record={
 
     for index, group in enumerate(groups):
         name = group["name"]
-        # rail_type = group["rail_type"]
 
         # Step 2: Retrieve all rows for this group
         rows = list(
-            # model_object.objects.filter(name=name, rail_type=rail_type)
             model_object.objects.filter(name=name)
         )
 
@@ -143,13 +139,11 @@ def merge_polygons_with_intersection_logic(model_object, progress_record={
         for processed in processed_geometries:
             new_rows.append(model_object(
                 name=name,
-                # rail_type=rail_type,
                 ground_level=processed["ground_level"],
                 building_polygon=processed["building_polygon"]
             ))
 
         # Step 5: Delete old rows and insert new ones
-        # model_object.objects.filter(name=name, rail_type=rail_type).delete()
         model_object.objects.filter(name=name).delete()
         model_object.objects.bulk_create(new_rows)
         
@@ -169,7 +163,6 @@ def add_line_relationship(model_a, model_b, station_data, progress_record={
     total_key_count:int = len(station_data.keys())
     for key, value in station_data.items():
         count+=1
-        # TODO think about logic of getting stations of 'key'. what happens if not identical? is 'contains' good?
         stations = model_a.objects.filter(name=key)
         if not stations:
             print(f"{key} station not found in mrtstations database")
@@ -179,10 +172,8 @@ def add_line_relationship(model_a, model_b, station_data, progress_record={
             print(f"{key}'s lines not found in lines database")
             continue
         
-        # ! how to account for stuff like sengkang vs sengkkang central for LRT?
         for station in stations:
             for line in lines:
-            # if station.rail_type == line.rail_type: #!do i want to check for this? this wont allow me to add my own relationships. eg sengkang having LRT
                 station.lines.add(line)
 
         if progress_record['progress_recorder'] != None:
