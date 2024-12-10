@@ -31,7 +31,7 @@ def import_new_geojson_features_into_table(
             original_description = feature['properties']['Description']
             station_info = parse_description(original_description)
             name=station_info["NAME"]
-            rail_type=station_info["RAIL_TYPE"]
+            # rail_type=station_info["RAIL_TYPE"]
             ground_level=station_info["GRND_LEVEL"]
 
         except(ValueError, KeyError) as e:
@@ -63,7 +63,7 @@ def import_new_geojson_features_into_table(
 
         polygons.append(model_object(
                 name=name,
-                rail_type = rail_type,#MRT or LRT
+                # rail_type = rail_type,#MRT or LRT
                 ground_level = ground_level,#ABOVEGROUND or UNDERGROUND
                 building_polygon = final_geom
             ))
@@ -99,18 +99,19 @@ def merge_polygons_with_intersection_logic(model_object, progress_record={
     # Step 1: Identify groups by name and rail_type
     groups = (
         model_object.objects
-        .values("name", "rail_type")
+        .values("name")
         .annotate(count=Count("id"))
         .filter(count__gt=1)
     )
 
     for index, group in enumerate(groups):
         name = group["name"]
-        rail_type = group["rail_type"]
+        # rail_type = group["rail_type"]
 
         # Step 2: Retrieve all rows for this group
         rows = list(
-            model_object.objects.filter(name=name, rail_type=rail_type)
+            # model_object.objects.filter(name=name, rail_type=rail_type)
+            model_object.objects.filter(name=name)
         )
 
         processed_geometries = []
@@ -142,13 +143,14 @@ def merge_polygons_with_intersection_logic(model_object, progress_record={
         for processed in processed_geometries:
             new_rows.append(model_object(
                 name=name,
-                rail_type=rail_type,
+                # rail_type=rail_type,
                 ground_level=processed["ground_level"],
                 building_polygon=processed["building_polygon"]
             ))
 
         # Step 5: Delete old rows and insert new ones
-        model_object.objects.filter(name=name, rail_type=rail_type).delete()
+        # model_object.objects.filter(name=name, rail_type=rail_type).delete()
+        model_object.objects.filter(name=name).delete()
         model_object.objects.bulk_create(new_rows)
         
         if progress_record['progress_recorder'] != None:
@@ -180,8 +182,9 @@ def add_line_relationship(model_a, model_b, station_data, progress_record={
         # ! how to account for stuff like sengkang vs sengkkang central for LRT?
         for station in stations:
             for line in lines:
-                if station.rail_type == line.rail_type:
-                    station.lines.add(line)
+            # if station.rail_type == line.rail_type: #!do i want to check for this? this wont allow me to add my own relationships. eg sengkang having LRT
+                station.lines.add(line)
+
         if progress_record['progress_recorder'] != None:
             progress_record['progress_recorder'].set_progress(count, total_key_count, description=f"Step 3 out of {progress_record['total_big_steps']}: classifying train line and colour of {key} station")
         

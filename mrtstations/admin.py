@@ -12,12 +12,12 @@ from mrtstations.static_data import STATIONS
 
 # Register your models here.
 @admin.register(Line)
-class BuildingGeometryPolygonAdmin(admin.ModelAdmin):
-    list_display = ['name', 'abbreviation', 'rail_type', 'color']
+class LineAdmin(admin.ModelAdmin):
+    list_display = ['name', 'abbreviation', 'rail_type']
 
 @admin.register(MrtStation)
-class BuildingGeometryPolygonAdmin(admin.ModelAdmin):
-    list_display = ['name', 'rail_type']
+class MrtStationAdmin(admin.ModelAdmin):
+    list_display = ['name']
     def get_urls(self):
         urls = super().get_urls()
         new_urls = [path('upload-geojson/', self.upload_geojson),]
