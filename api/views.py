@@ -280,6 +280,7 @@ class stream_polygon_per_block(APIView):
 
         if cached_data:
             # If cached data exists, stream it
+            # TODO cached items are not given to front end properly. geometry is blank
             response = StreamingHttpResponse((line for line in cached_data.splitlines()), content_type='application/json')
             response['Cache-Hit'] = 'True'  # Add a custom header to indicate cache hit
             return response
