@@ -281,13 +281,12 @@ class stream_polygon_per_block(APIView):
         if cached_data:
             # If cached data exists, stream it
             # TODO cached items are not given to front end properly. geometry is blank
-            response = StreamingHttpResponse((line for line in cached_data.splitlines()), content_type='application/json')
+            response = StreamingHttpResponse(self.stream_cached_data(cached_data), content_type='application/json')
             response['Cache-Hit'] = 'True'  # Add a custom header to indicate cache hit
             return response
 
 
         response = StreamingHttpResponse(self.generate_data(cache_key), content_type="application/json")
-        # response['Cache-Control'] = 'no-cache'
         response['Cache-Hit'] = 'False'  # Add a custom header to indicate cache hit
         return response
 
@@ -330,8 +329,13 @@ class stream_polygon_per_block(APIView):
 
          # Cache the data after streaming completes
         serialized_data = "".join(cache_buffer)  # Combine buffer into a single string
-        cache.set(cache_key, serialized_data, timeout=3600)
+        # print("cached info:", serialized_data)#TODO print works ok, but the front end receives the cached data without any \n
+        cache.set(cache_key, serialized_data, timeout=60)
         
+    def stream_cached_data(self,data):
+        for item in data.splitlines():
+            line = item + "\n" # Send each item as JSON
+            yield line
     
 class flat_types(APIView):
     def get(self, request):
