@@ -272,15 +272,24 @@ class polygon_price_per_block(ListAPIView):
     queryset = PostalCodeAddress.objects.all().with_geometry().with_latest_price().order_by("id")
 
 #  curl -N http://localhost:9000/api/blocks/
-class stream_polygon_per_block(APIView):
+class stream_info_per_block(APIView):
+    response_type = None  # Default response type
+
     def get(self, request, *args, **kwargs):
+        if self.response_type == 'geometry':
+            cache_key = "block-geometry"  # Unique key for the dataset
+        elif self.response_type == 'price':
+            # Logic for price response
+            price_type = kwargs.get('price_type', 'default')
+            cache_key = f"block-price-{price_type}"  # Unique key for the dataset
+        else:
+            return JsonResponse({"error": "Invalid response type"}, status=400)
+
         # Return StreamingHttpResponse with generator as content
-        cache_key = "block-geometry"  # Unique key for the dataset
         cached_data = cache.get(cache_key)
 
         if cached_data:
             # If cached data exists, stream it
-            # TODO cached items are not given to front end properly. geometry is blank
             response = StreamingHttpResponse(self.stream_cached_data(cached_data), content_type='application/json')
             response['Cache-Hit'] = 'True'  # Add a custom header to indicate cache hit
             return response
@@ -300,26 +309,20 @@ class stream_polygon_per_block(APIView):
     
     def generate_data(self,cache_key):
         # Queryset based on original ListAPIView
-        queryset = PostalCodeAddress.objects.all()
 
-        # check for params
-        get_geometry = self.request.query_params.get('geometry', None)
-        if get_geometry == "true":
-            queryset = queryset.with_geometry()
-        
-        price = self.request.query_params.get('price', None)
-        if price == "latest-avg":
-            queryset = queryset.with_latest_price()
-        #     serializer_to_use = BlockLatestPriceSerializer
-        # else:
-        #     serializer_to_use = BlockSerializer
-
-        queryset = queryset.order_by("id")
-        serializer_to_use = BlockSerializer
+        if cache_key == 'block-geometry':
+            queryset = PostalCodeAddress.objects.all().with_geometry().order_by("id")
+            serializer_to_use = BlockGeometrySerializer
+        elif cache_key == 'block-price-latest-avg':
+            queryset = PostalCodeAddress.objects.all().with_latest_price().order_by("id")
+            serializer_to_use = BlockPriceSerializer
+        else:
+            queryset = PostalCodeAddress.objects.all().order_by("id")
+            serializer_to_use = BlockPriceSerializer
 
         cache_buffer = [] # for caching
 
-        batch_size = 2000
+        batch_size = 100
         batch = [] # for batch sending
 
         # Serialize each item in the queryset individually

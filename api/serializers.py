@@ -99,21 +99,15 @@ class BlockLatestPriceSerializer(GeoFeatureModelSerializer):
             return mapping(simplified_polygon)
         return None
     
-class BlockSerializer(GeoFeatureModelSerializer):
-    # price = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
-    price = serializers.SerializerMethodField()
+class BlockGeometrySerializer(GeoFeatureModelSerializer):
     simplified_geometry = serializers.SerializerMethodField()
 
     class Meta:
         model = PostalCodeAddress
         geo_field = 'simplified_geometry'  # The GeoJSON geometry field
-        fields = ('id', 'block', 'street_name', 'postal_code', 'simplified_geometry', 'price')  # Include the latest price dynamically
+        fields = ('id','simplified_geometry')  # Include the latest price dynamically
 
-    def get_simplified_geometry(self, obj):
-        get_geometry = self.context.get('get_geometry', None)
-        if get_geometry != "true":
-            return None
-        
+    def get_simplified_geometry(self, obj):        
         # Get the zoom level from the context (default to 12 if not provided)
         zoom_level = self.context.get('zoom_level', 12)
         simplify_factor = max(0.001, 0.01 * (15 - zoom_level))
@@ -128,13 +122,17 @@ class BlockSerializer(GeoFeatureModelSerializer):
 
             return mapping(simplified_polygon)
         return None
+
+class BlockPriceSerializer(GeoFeatureModelSerializer):
+    price = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PostalCodeAddress
+        geo_field = None
+        fields = ('id', 'price')  # Include the latest price dynamically
     
     def get_price(self,obj):
-        price = self.context.get('price', None)
-        if price == None:
-            return None
-        else:
-            return format_decimal(str(obj.price), 2)
+        return format_decimal(str(obj.price), 2)
 
 class TablesLastUpdatedSerializer(serializers.ModelSerializer):
     class Meta:
