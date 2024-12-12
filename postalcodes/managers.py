@@ -15,45 +15,6 @@ class PostalCodeAddressQuerySet(models.QuerySet):
         )
 
     def with_latest_price(self):
-        # ResaleTransaction = apps.get_model('resaletransactions', 'ResaleTransaction')  # Lazy import of FlatPrice from other app
-        # queryset = ResaleTransaction.objects \
-        #     .distinct(
-        #         'postal_code_key',
-        #         "town",
-        #         "flat_type",
-        #         "block",
-        #         "street_name",
-        #         "floor_area_sqm",
-        #         "storey_range",) \
-        #     .order_by(
-        #         'postal_code_key',
-        #         "town",
-        #         "flat_type",
-        #         "block",
-        #         "street_name",
-        #         "floor_area_sqm",
-        #         "storey_range",
-        #         "-id")
-        # latest_prices = ResaleTransaction.objects \
-        #     .filter(id__in=Subquery(queryset.only("id"))) \
-        #     .values('postal_code_key') \
-        #     .annotate(average_latest_price=Avg('resale_price'))
-            # .values('postal_code_key', 'average_latest_price')
-
-        # price_map = list(latest_prices)
-        # print(price_map)
-
-        # return self.annotate(
-        #     latest_price=Subquery(
-        #         latest_prices.filter(postal_code_key=OuterRef('postal_code'))
-        #         .values('average_latest_price')[:1]
-        #     )
-            # latest_price=Coalesce(
-            #     Subquery(latest_price, output_field=DecimalField(max_digits=12, decimal_places=2)),
-            #     Value(0,output_field=DecimalField(max_digits=12, decimal_places=2))
-            # )
-        # )
-
         with connection.cursor() as cursor:
             cursor.execute("""
                 WITH latest_transactions AS (
@@ -80,8 +41,6 @@ class PostalCodeAddressQuerySet(models.QuerySet):
                     postal_code_key_id;
             """)
             results = cursor.fetchall()
-
-        # print("SQL Query Results:", results)
 
         # Step 2: Map the SQL results to a dictionary for fast lookup
         average_prices = [
