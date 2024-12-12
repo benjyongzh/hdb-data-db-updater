@@ -319,17 +319,28 @@ class stream_polygon_per_block(APIView):
 
         cache_buffer = [] # for caching
 
+        batch_size = 2000
+        batch = [] # for batch sending
+
         # Serialize each item in the queryset individually
-        for item in queryset:
+        for index, item in enumerate(queryset):
             # Use context if necessary
             serializer = serializer_to_use(item, context=self.get_serializer_context())
-            line = json.dumps(serializer.data) + "\n" # Send each item as JSON
-            cache_buffer.append(line)
-            yield line
+            line = serializer.data # Send each item as JSON
+            batch.append(line)
+            if (index + 1) % batch_size == 0:
+                product = json.dumps(batch) + "\n"
+                yield product
+                cache_buffer.append(product)
+                batch = []
+        
+        if batch:
+            product = json.dumps(batch) + "\n"
+            yield product
+            cache_buffer.append(product)
 
          # Cache the data after streaming completes
         serialized_data = "".join(cache_buffer)  # Combine buffer into a single string
-        # print("cached info:", serialized_data)#TODO print works ok, but the front end receives the cached data without any \n
         cache.set(cache_key, serialized_data, timeout=60)
         
     def stream_cached_data(self,data):
