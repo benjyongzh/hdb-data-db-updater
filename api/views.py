@@ -21,7 +21,7 @@ from django.db.models import OuterRef, Subquery, Max, F, Avg
 from django.core.exceptions import ObjectDoesNotExist
 from .utils import filter_queryset,filter_storey
 from datetime import datetime
-from django.http import JsonResponse, StreamingHttpResponse
+from django.http import JsonResponse, HttpResponse, StreamingHttpResponse
 import json
 from django.core.cache import cache
 
@@ -351,10 +351,28 @@ class stream_info_per_block(APIView):
             line = item + "\n" # Send each item as JSON
             yield line
 
-# class polygon_per_block(ListAPIView):
-#     paginator = None
-#     serializer_class = BlockGeometrySerializer
-#     queryset = PostalCodeAddress.objects.all().with_geometry().order_by("id")
+class geojson_geometry_per_block(APIView):
+    paginator = None
+
+    def get(self, request, *args, **kwargs):
+        # Query the database
+        queryset = PostalCodeAddress.objects.all().with_geometry().order_by("id")
+
+        # Serialize the queryset
+        serializer = BlockGeometrySerializer(queryset, many=True)
+
+        # Fetch the format parameter
+        content_type = request.GET.get('format', 'json').lower()
+        content_type = self.request.query_params.get('download', None)
+        if content_type == "true":
+            # Create the response with appropriate headers
+            json_data = json.dumps(serializer.data, indent=4)
+            response = HttpResponse(json_data, content_type='application/json')
+            response['Content-Disposition'] = 'attachment; filename="hdb-block-geometry-geojson-dataset.json"'
+            return response
+        else:
+            return Response(serializer.data)
+
 
 # class price_per_block(ListAPIView):
 #     paginator = None
