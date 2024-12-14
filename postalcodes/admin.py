@@ -56,7 +56,7 @@ class BuildingGeometryPolygonAdmin(admin.ModelAdmin):
     list_display = ['block', 'postal_code', 'building_polygon']
     def get_urls(self):
         urls = super().get_urls()
-        new_urls = [path('upload-geojson/', self.upload_geojson),]
+        new_urls = [path('upload-geojson/', self.upload_geojson),path('upload-geometry-to-mapbox/', self.upload_geometries_to_mapbox),]
         return new_urls + urls
 
     def upload_geojson(self, request):
@@ -79,6 +79,16 @@ class BuildingGeometryPolygonAdmin(admin.ModelAdmin):
             
             # TODO if any, get task object in task table. with task_id. description of task
             return render(request, "admin/import_file.html", context=form_context)
+        
+    def upload_geometries_to_mapbox(self, request):
+        form_context = {
+            'form_title': "Update Geometries in Mapbox Tileset",
+            'form_subtitle': "Refresh and update the geometries of HDB blocks stored in Mapbox.",
+            'get_data_endpoint': "http://localhost:9000/api/blocks/geometry/",
+            'push_data_endpoint': ""
+
+        }
+        return render(request, "admin/upload_to_other_site.html", context=form_context)
         
 @shared_task(bind=True)
 def upload_geojson_impl(self, geojson_file):
