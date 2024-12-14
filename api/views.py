@@ -14,13 +14,14 @@ ResaleTransactionSerializerBlockLatestAvg, \
 PostalCodeAddressSerializer, \
 BuildingGeometryPolygonSerializer, \
 BlockLatestPriceSerializer, \
-BlockSerializer, \
+BlockGeometrySerializer, \
+BlockPriceSerializer, \
 MrtStationSerializer
 from django.db.models import OuterRef, Subquery, Max, F, Avg
 from django.core.exceptions import ObjectDoesNotExist
 from .utils import filter_queryset,filter_storey
 from datetime import datetime
-from django.http import StreamingHttpResponse
+from django.http import JsonResponse, StreamingHttpResponse
 import json
 from django.core.cache import cache
 
@@ -304,8 +305,7 @@ class stream_info_per_block(APIView):
         # zoom_level = int(self.request.query_params.get('zoom', 12))
         zoom_level = 1
         get_geometry = self.request.query_params.get('geometry', None)
-        price = self.request.query_params.get('price', None)
-        return {'zoom_level': zoom_level, 'get_geometry': get_geometry, 'price': price}
+        return {'zoom_level': zoom_level, 'get_geometry': get_geometry}
     
     def generate_data(self,cache_key):
         # Queryset based on original ListAPIView
@@ -350,7 +350,23 @@ class stream_info_per_block(APIView):
         for item in data.splitlines():
             line = item + "\n" # Send each item as JSON
             yield line
+
+# class polygon_per_block(ListAPIView):
+#     paginator = None
+#     serializer_class = BlockGeometrySerializer
+#     queryset = PostalCodeAddress.objects.all().with_geometry().order_by("id")
+
+# class price_per_block(ListAPIView):
+#     paginator = None
+#     serializer_class = BlockPriceSerializer
     
+#     def get_queryset(self):
+#         price_type = self.kwargs.get('price_type')
+#         if price_type == "latest-avg":
+#             return PostalCodeAddress.objects.all().with_latest_price().order_by("id")
+        
+#         return PostalCodeAddress.objects.all().order_by("id")
+
 class flat_types(APIView):
     def get(self, request):
         response = []
