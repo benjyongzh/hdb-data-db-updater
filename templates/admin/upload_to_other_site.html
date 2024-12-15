@@ -105,133 +105,144 @@
 </div>
 
 <script>
-    const uploadForm = document.getElementById("upload-to-other-site-form");
-    const progress_bar_bg = document.getElementById("progress");
-    const progress_bar = document.getElementById("progressbar");
-    const bottom_link = document.getElementById("bottom-link");
-    const bottom_text = document.getElementById("bottom-text");
-    const error_text = document.getElementById("error-text");
+  const uploadForm = document.getElementById("upload-to-other-site-form");
+  const progress_bar_bg = document.getElementById("progress");
+  const progress_bar = document.getElementById("progressbar");
+  const bottom_link = document.getElementById("bottom-link");
+  const bottom_text = document.getElementById("bottom-text");
+  const error_text = document.getElementById("error-text");
 
-    async function handleApiCall(getDataEndpoint, pushDataEndpoint) {
-      try {
-          // Call the first API
-          const response = await fetch(getDataEndpoint);
-          if (!response.ok) throw new Error("Error calling getDataEndpoint API");
-
-          const data = await response.json();
-
-          // Use the response to call the second API
-          const secondApiUrl = pushDataEndpoint; // Replace with your actual endpoint
-          const secondResponse = await fetch(secondApiUrl, {
-              method: 'POST', // or 'GET', depending on the API
-              headers: {
-                  'Content-Type': 'application/json'
-              },
-              body: JSON.stringify(data) // Send the response data from the first API
-          });
-
-          if (!secondResponse.ok) throw new Error("Error calling pushDataEndpoint API");
-
-          const secondData = await secondResponse.json();
-          console.log("Second API response:", secondData);
-          alert("Second API call was successful!");
-      } catch (error) {
-          console.error(error);
-          alert("An error occurred. Check the console for details.");
-      }
+  async function getData(getDataEndpoint) {
+    const response = await fetch(getDataEndpoint);
+    if (!response.ok) throw new Error("Error calling getDataEndpoint API");
+    const data = await response.json();
+    console.log("First API response:", secondData);
+    return data;
   }
 
-    $("#upload-to-other-site-form").submit(function (e) {
-      e.preventDefault();
-      //TODO need to GET geojson data here first. then upload elsewhere
-
-      $.ajax({
-        type: "GET",
-        url: ,
-        data: geometryData,
-        dataType: "json",
-        beforeSend: function () {
-          progress_bar.style.width = `0%`;
-          progress_bar.ariaValueNow = `0`;
-          bottom_text.textContent = ``;
-          error_text.textContent = ``;
-        },
-        xhr: function () {
-          const xhr = new window.XMLHttpRequest();
-
-          xhr.upload.addEventListener("progress", (e) => {
-            if (e.lengthComputable) {
-              const percentProgress = (e.loaded / e.total) * 100;
-              console.log(percentProgress);
-              progress_bar.style.width = `${percentProgress}%`;
-              progress_bar.ariaValueNow = `${percentProgress}`;
-              if (percentProgress >= 100) {
-                bottom_text.textContent = `Getting data...`;
-              } else {
-                bottom_text.textContent = `${Math.round(percentProgress)}%`;
-              }
-            }
-          });
-          return xhr;
-        },
-        success: function (response) {
-
-        },
-        error: function (err) {
-          error_text.textContent = `Error ${err.status}: ${err.responseJSON.error}`;
-        },
-        cache: false,
-        contentType: false,
-        processData: false,
-      });
-
-
-      $.ajax({
-        type: "POST",
-        url: window.location.pathname,
-        data: geometryData,
-        dataType: "json",
-        beforeSend: function () {
-          progress_bar.style.width = `0%`;
-          progress_bar.ariaValueNow = `0`;
-          bottom_text.textContent = ``;
-          error_text.textContent = ``;
-        },
-        xhr: function () {
-          const xhr = new window.XMLHttpRequest();
-
-          xhr.upload.addEventListener("progress", (e) => {
-            if (e.lengthComputable) {
-              const percentProgress = (e.loaded / e.total) * 100;
-              console.log(percentProgress);
-              progress_bar.style.width = `${percentProgress}%`;
-              progress_bar.ariaValueNow = `${percentProgress}`;
-              if (percentProgress >= 100) {
-                bottom_text.textContent = `Querying database...`;
-              } else {
-                bottom_text.textContent = `${Math.round(percentProgress)}%`;
-              }
-            }
-          });
-          return xhr;
-        },
-        success: function (response) {
-          console.log(response);
-          progress_bar_bg.classList.add("not-visible");
-          bottom_text.textContent = `Upload complete!`;
-          bottom_link.href = response.redirect_url;
-          bottom_link.classList.remove("not-visible");
-          uploadForm.reset();
-        },
-        error: function (err) {
-          //console.log(err);
-          error_text.textContent = `Error ${err.status}: ${err.responseJSON.error}`;
-        },
-        cache: false,
-        contentType: false,
-        processData: false,
-      });
+  async function uploadData(pushDataEndpoint,data) {
+    const secondResponse = await fetch(pushDataEndpoint, {
+      method: 'POST', // or 'GET', depending on the API
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data) // Send the response data from the first API
     });
+
+    if (!secondResponse.ok) throw new Error("Error calling pushDataEndpoint API");
+
+    const secondData = await secondResponse.json();
+    console.log("Second API response:", secondData);
+    return secondData;
+  }
+
+  async function handleApiCall(getDataEndpoint, pushDataEndpoint) {
+    try {
+      // Call the first API
+      coonst res = await getData(getDataEndpoint)
+        .then(data => {
+          // Use the response to call the second /api/postal
+          return uploadData(pushDataEndpoint, data)
+      });
+
+      console.log("Full data upload was successful!");
+    } catch (error) {
+      console.log("An error occurred. Check the console for details.");
+      console.error(error);
+    }
+  }
+
+  $("#upload-to-other-site-form").submit(function (e) {
+    e.preventDefault();
+    //TODO need to GET geojson data here first. then upload elsewhere
+
+    $.ajax({
+      type: "GET",
+      url: ,
+      data: geometryData,
+      dataType: "json",
+      beforeSend: function () {
+        progress_bar.style.width = `0%`;
+        progress_bar.ariaValueNow = `0`;
+        bottom_text.textContent = ``;
+        error_text.textContent = ``;
+      },
+      xhr: function () {
+        const xhr = new window.XMLHttpRequest();
+
+        xhr.upload.addEventListener("progress", (e) => {
+          if (e.lengthComputable) {
+            const percentProgress = (e.loaded / e.total) * 100;
+            console.log(percentProgress);
+            progress_bar.style.width = `${percentProgress}%`;
+            progress_bar.ariaValueNow = `${percentProgress}`;
+            if (percentProgress >= 100) {
+              bottom_text.textContent = `Getting data...`;
+            } else {
+              bottom_text.textContent = `${Math.round(percentProgress)}%`;
+            }
+          }
+        });
+        return xhr;
+      },
+      success: function (response) {
+
+      },
+      error: function (err) {
+        error_text.textContent = `Error ${err.status}: ${err.responseJSON.error}`;
+      },
+      cache: false,
+      contentType: false,
+      processData: false,
+    });
+
+
+    $.ajax({
+      type: "POST",
+      url: window.location.pathname,
+      data: geometryData,
+      dataType: "json",
+      beforeSend: function () {
+        progress_bar.style.width = `0%`;
+        progress_bar.ariaValueNow = `0`;
+        bottom_text.textContent = ``;
+        error_text.textContent = ``;
+      },
+      xhr: function () {
+        const xhr = new window.XMLHttpRequest();
+
+        xhr.upload.addEventListener("progress", (e) => {
+          if (e.lengthComputable) {
+            const percentProgress = (e.loaded / e.total) * 100;
+            console.log(percentProgress);
+            progress_bar.style.width = `${percentProgress}%`;
+            progress_bar.ariaValueNow = `${percentProgress}`;
+            if (percentProgress >= 100) {
+              bottom_text.textContent = `Querying database...`;
+            } else {
+              bottom_text.textContent = `${Math.round(percentProgress)}%`;
+            }
+          }
+        });
+        return xhr;
+      },
+      success: function (response) {
+        console.log(response);
+        progress_bar_bg.classList.add("not-visible");
+        bottom_text.textContent = `Upload complete!`;
+        bottom_link.href = response.redirect_url;
+        bottom_link.classList.remove("not-visible");
+        uploadForm.reset();
+      },
+      error: function (err) {
+        //console.log(err);
+        error_text.textContent = `Error ${err.status}: ${err.responseJSON.error}`;
+      },
+      cache: false,
+      contentType: false,
+      processData: false,
+    });
+  });
 </script>
 
 {% endblock %}
