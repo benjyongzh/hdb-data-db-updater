@@ -1,7 +1,7 @@
 from django.contrib import admin
 from postalcodes.models import PostalCodeAddress, BuildingGeometryPolygon
-from django.shortcuts import render
-from django.urls import path
+from django.shortcuts import render, redirect
+from django.urls import path, reverse
 from common.forms import FileUploadForm, process_file_upload
 from postalcodes.util.parse_geojson import import_new_geojson_features_into_table
 from postalcodes.util.postal_codes import update_postalcode_address_table
@@ -11,6 +11,10 @@ from common.util.utils import update_timestamps_table_lastupdated, get_table_las
 from celery import shared_task
 from celery_progress.backend import ProgressRecorder
 from io import BytesIO
+from django.shortcuts import redirect
+import requests
+import json
+from config.env import env
 
 # Register your models here.
 @admin.register(PostalCodeAddress)
@@ -56,7 +60,7 @@ class BuildingGeometryPolygonAdmin(admin.ModelAdmin):
     list_display = ['block', 'postal_code', 'building_polygon']
     def get_urls(self):
         urls = super().get_urls()
-        new_urls = [path('upload-geojson/', self.upload_geojson),path('upload-geometry-to-mapbox/', self.upload_geometries_to_mapbox),]
+        new_urls = [path('upload-geojson/', self.upload_geojson),path('upload-geometries-to-mapbox/', self.upload_geometries_to_mapbox, name="upload_geometries_to_mapbox"),]
         return new_urls + urls
 
     def upload_geojson(self, request):
@@ -81,14 +85,42 @@ class BuildingGeometryPolygonAdmin(admin.ModelAdmin):
             return render(request, "admin/import_file.html", context=form_context)
         
     def upload_geometries_to_mapbox(self, request):
-        form_context = {
-            'form_title': "Update Geometries in Mapbox Tileset",
-            'form_subtitle': "Refresh and update the geometries of HDB blocks stored in Mapbox.",
-            'get_data_endpoint': "http://localhost:9000/api/blocks/geometry/",
-            'push_data_endpoint': ""
+        # Fetch GeoJSON from API
+        geojson_url = request.build_absolute_uri(reverse("geojson-geometry-features"))
+        response = requests.get(geojson_url)
+        if response.status_code != 200:
+            self.message_user(
+                request, "Failed to fetch GeoJSON data.", level="error"
+            )
+            return redirect("..")  # Redirect back to the changelist
 
-        }
-        return render(request, "admin/upload_to_other_site.html", context=form_context)
+        geojson_data = response.json()
+
+        # Mapbox Upload
+        mapbox_username=env("MAPBOX_USERNAME")
+        access_token = env("MAPBOX_API_ACCESS_TOKEN") # Use env vars securely
+        tileset_id = env("MAPBOX_TILESET_ID") 
+        endpoint = env("MAPBOX_UPDATE_TILESET_ENDPOINT") 
+        mapbox_api_url = f"{endpoint}/sources/{mapbox_username}/{tileset_id}?access_token={access_token}"
+
+        # Convert GeoJSON to line-delimited GeoJSON format
+        line_delimited_geojson = "\n".join(
+            json.dumps(feature) for feature in geojson_data
+        )
+
+        # Upload GeoJSON directly as the request body
+        upload_response = requests.put(
+            mapbox_api_url,
+            data=line_delimited_geojson.encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+        )
+
+        if upload_response.ok:
+            self.message_user(request, "Tileset successfully uploaded!")
+        else:
+            self.message_user(request, f"Failed to upload tileset: {upload_response.text}", level="error")
+
+        return redirect("..")  # Redirect back to the changelist
         
 @shared_task(bind=True)
 def upload_geojson_impl(self, geojson_file):
