@@ -364,14 +364,15 @@ class geojson_geometry_per_block(APIView):
         # Fetch the format parameter
         content_type = request.GET.get('format', 'json').lower()
         content_type = self.request.query_params.get('download', None)
+        data = serializer.data['features']
         if content_type == "true":
             # Create the response with appropriate headers
-            json_data = json.dumps(serializer.data, indent=4)
+            json_data = json.dumps(data, indent=4)
             response = HttpResponse(json_data, content_type='application/json')
             response['Content-Disposition'] = 'attachment; filename="hdb-block-geometry-geojson-dataset.json"'
             return response
         else:
-            return Response(serializer.data)
+            return JsonResponse(data, safe=False)
 
 
 # class price_per_block(ListAPIView):
