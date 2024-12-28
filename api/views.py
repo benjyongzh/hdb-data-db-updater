@@ -320,14 +320,13 @@ class stream_info_per_block(APIView):
             queryset = PostalCodeAddress.objects.all().order_by("id")
             serializer_to_use = BlockPriceSerializer
 
-        cache_object = {}
-        cache_object['batches'] = [] # append to this array to populate cache
+        cache_list = [] # append to this array to populate cache
 
         batch_size = 100
         batch = [] # for batch sending
 
         # Serialize each item in the queryset individually
-        yield "{\"batches\": ["
+        yield "["
         for index, item in enumerate(queryset):
             # Use context if necessary
             serializer = serializer_to_use(item, context=self.get_serializer_context())
@@ -338,22 +337,22 @@ class stream_info_per_block(APIView):
                 product = {"batch": batch}
                 yield json.dumps(product)
                 yield ","
-                cache_object['batches'].append(product)
+                cache_list.append(product)
                 batch = []
         
         if batch:
             product = {"batch": batch}
             yield json.dumps(product)
-            yield "]}"
-            cache_object['batches'].append(product)
+            yield "]"
+            cache_list.append(product)
 
          # Cache the data after streaming completes
         # serialized_data = "".join(cache_buffer)  # Combine buffer into a single string
-        cache.set(cache_key, cache_object, timeout=60)
+        cache.set(cache_key, cache_list, timeout=60)
         
-    def stream_cached_data(self,cache_object):
+    def stream_cached_data(self,cache_list):
         # TODO send in batches
-        for batch in cache_object['batches']:
+        for batch in cache_list:
             yield batch # Send each item as JSON
 
 class geojson_geometry_per_block(APIView):
