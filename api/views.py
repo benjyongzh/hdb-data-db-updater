@@ -320,36 +320,41 @@ class stream_info_per_block(APIView):
             queryset = PostalCodeAddress.objects.all().order_by("id")
             serializer_to_use = BlockPriceSerializer
 
-        cache_buffer = [] # for caching
+        cache_object = {}
+        cache_object['batches'] = [] # append to this array to populate cache
 
         batch_size = 100
         batch = [] # for batch sending
 
         # Serialize each item in the queryset individually
+        yield "{\"batches\": ["
         for index, item in enumerate(queryset):
             # Use context if necessary
             serializer = serializer_to_use(item, context=self.get_serializer_context())
             line = serializer.data # Send each item as JSON
             batch.append(line)
             if (index + 1) % batch_size == 0:
-                product = json.dumps(batch) + "\n"
-                yield product
-                cache_buffer.append(product)
+                # reached batch size limit
+                product = {"batch": batch}
+                yield json.dumps(product)
+                yield ","
+                cache_object['batches'].append(product)
                 batch = []
         
         if batch:
-            product = json.dumps(batch) + "\n"
-            yield product
-            cache_buffer.append(product)
+            product = {"batch": batch}
+            yield json.dumps(product)
+            yield "]}"
+            cache_object['batches'].append(product)
 
          # Cache the data after streaming completes
-        serialized_data = "".join(cache_buffer)  # Combine buffer into a single string
-        cache.set(cache_key, serialized_data, timeout=60)
+        # serialized_data = "".join(cache_buffer)  # Combine buffer into a single string
+        cache.set(cache_key, cache_object, timeout=60)
         
-    def stream_cached_data(self,data):
-        for item in data.splitlines():
-            line = item + "\n" # Send each item as JSON
-            yield line
+    def stream_cached_data(self,cache_object):
+        # TODO send in batches
+        for batch in cache_object['batches']:
+            yield batch # Send each item as JSON
 
 class geojson_geometry_per_block(APIView):
     paginator = None
