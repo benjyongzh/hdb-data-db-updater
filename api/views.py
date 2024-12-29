@@ -334,17 +334,16 @@ class stream_info_per_block(APIView):
             batch.append(line)
             if (index + 1) % batch_size == 0:
                 # reached batch size limit
-                product = {"batch": batch}
-                yield json.dumps(product)
-                yield ","
-                cache_list.append(product)
+                yield json.dumps(batch)
+                yield ",[],"
+                cache_list.append(batch)
+                cache_list.append([])
                 batch = []
         
         if batch:
-            product = {"batch": batch}
-            yield json.dumps(product)
+            yield json.dumps(batch)
             yield "]"
-            cache_list.append(product)
+            cache_list.append(batch)
 
          # Cache the data after streaming completes
         # serialized_data = "".join(cache_buffer)  # Combine buffer into a single string
