@@ -351,8 +351,11 @@ class stream_info_per_block(APIView):
         
     def stream_cached_data(self,cache_list):
         # TODO send in batches
+        yield "["
         for batch in cache_list:
             yield batch # Send each item as JSON
+            yield ","
+        yield "]"
 
 class geojson_geometry_per_block(APIView):
     paginator = None
