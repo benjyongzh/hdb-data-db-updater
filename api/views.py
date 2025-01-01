@@ -326,7 +326,6 @@ class stream_info_per_block(APIView):
         batch = [] # for batch sending
 
         # Serialize each item in the queryset individually
-        yield "["
         for index, item in enumerate(queryset):
             # Use context if necessary
             serializer = serializer_to_use(item, context=self.get_serializer_context())
@@ -334,28 +333,24 @@ class stream_info_per_block(APIView):
             batch.append(line)
             if (index + 1) % batch_size == 0:
                 # reached batch size limit
-                yield json.dumps(batch)
-                yield ",[],"
+                yield json.dumps(batch) + ",[],"
                 cache_list.append(batch)
-                cache_list.append([])
                 batch = []
         
         if batch:
             yield json.dumps(batch)
-            yield "]"
             cache_list.append(batch)
 
-         # Cache the data after streaming completes
-        # serialized_data = "".join(cache_buffer)  # Combine buffer into a single string
+        # Cache the data after streaming completes
         cache.set(cache_key, cache_list, timeout=60)
         
     def stream_cached_data(self,cache_list):
         # TODO send in batches
-        yield "["
-        for batch in cache_list:
-            yield batch # Send each item as JSON
-            yield ","
-        yield "]"
+        for index, batch in enumerate(cache_list):
+            if index <= len(cache_list) - 1:
+                yield json.dumps(batch) + ",[]," # Send each item as JSON
+            else:
+                yield json.dumps(batch) # Send each item as JSON
 
 class geojson_geometry_per_block(APIView):
     paginator = None
