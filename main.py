@@ -1,40 +1,34 @@
 import psycopg2
 from dotenv import dotenv_values
+from fastapi import FastAPI
+from resale_transactions.resale_transaction_controller import router as resale_tx_router
+from postal_codes.postal_code_controller import router as postal_codes_router
+from building_polygons.building_polygon_controller import router as building_polygons_router
+from mrt_stations.mrt_station_controller import router as mrt_stations_router
 
-config = dotenv_values(".env")
 
-conn = psycopg2.connect(host=config["DB_HOST"],dbname = config["DB_NAME"], user=config["DB_USER"], password=config["DB_PASSWORD"], port=config["DB_PORT"])
+app = FastAPI(title="hdb-data-db-updater")
 
-cur = conn.cursor()
 
-#do stuff
+@app.get("/")
+def root():
+    return {"message": "HDB Data DB Updater API"}
 
-cur.execute("""--sql
-            CREATE TEMPORARY TABLE tmp_table AS SELECT * FROM practice WITH NO DATA;
-            """)
 
-with open(config["CSV_FILE_PATH"]) as f:
-    cur.copy_expert('COPY tmp_table FROM STDIN WITH HEADER CSV', f)
+@app.get("/health")
+def health():
+    return {"status": "ok"}
 
-cur.execute("""--sql
-            INSERT INTO practice SELECT * FROM tmp_table ON CONFLICT DO NOTHING;
-            """)
 
-cur.execute("""SELECT * FROM practice;""")
-for row in cur.fetchall():
-    print(row)
+# Mount routers
+app.include_router(resale_tx_router)
+app.include_router(postal_codes_router)
+app.include_router(building_polygons_router)
+app.include_router(mrt_stations_router)
 
-cur.execute("""--sql
-            DROP TABLE tmp_table;
-            """)
 
-conn.commit()
+if __name__ == "__main__":
+    # Local dev entrypoint: uvicorn with reload
+    import uvicorn
 
-cur.close()
-conn.close()
-
-# do same gathering of data for building-polygons
-
-# execute merging of tables with building-polygons. save as 3rd table. subprocess in python
-
-# learn djnago as backend
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
