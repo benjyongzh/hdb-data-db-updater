@@ -1,14 +1,18 @@
-import os
 import io
 import requests
-from datetime import datetime
+from typing import List, Optional
 from django.db import connection, transaction
+from psycopg2.extras import RealDictCursor
 
-DATASET_ID = "d_8b84c4ee58e3cfc0ece0d773c8ca6abc"
-META_URL = f"https://api-open.data.gov.sg/v1/public/api/datasets/{DATASET_ID}/initiate-download"
+from common.database import db_postgres_conn
+from common.table_naming import table_name_from_folder
+from common.util.download_dataset import get_download_url, download_bytes
+from resale_transactions.resale_transaction import ResaleTransaction
+from table_metadata.table_metadata_service import touch_table_metadata
+
 
 # Target table schema (includes id)
-TARGET_TABLE = "resale_transactions"
+TARGET_TABLE = table_name_from_folder(__file__, override_env_var="RESALE_TRANSACTIONS_TABLE")
 TARGET_COLS = [
     "id",
     "month",
@@ -28,31 +32,14 @@ TARGET_COLS = [
 STAGING_TABLE = "resale_prices_staging"
 STAGING_COLS = TARGET_COLS[1:]  # everything except "id"
 
-def _get_download_url() -> str:
-    """
-        Fetch dataset from data.gov.sg API using the datastore_search endpoint.
-        If a download URL is returned, fetch the actual dataset and save to file.
-        """
-    r = requests.get(META_URL, timeout=30)
-    r.raise_for_status()
-    j = r.json()
-    url = j.get("data", {}).get("url")
-    if not url:
-        raise RuntimeError("No download URL in API response")
-    return url
-
-def _download_csv_bytes(download_url: str) -> bytes:
-    r = requests.get(download_url, timeout=60)
-    r.raise_for_status()
-    return r.content  # CSV bytes
 
 def refresh_resale_transaction_table() -> int:
     """
     Fetch CSV, load into staging, then replace target table rows.
     Returns number of rows inserted into target.
     """
-    download_url = _get_download_url()
-    csv_bytes = _download_csv_bytes(download_url)
+    download_url = get_download_url("d_8b84c4ee58e3cfc0ece0d773c8ca6abc")
+    csv_bytes = download_bytes(download_url)
 
     # Use DB transaction to make the swap atomic
     with transaction.atomic():
@@ -109,4 +96,74 @@ def refresh_resale_transaction_table() -> int:
             cur.execute(f"SELECT COUNT(*) FROM {TARGET_TABLE};")
             count = cur.fetchone()[0]
 
+    # Touch table metadata after a successful refresh
+    try:
+        touch_table_metadata(table_name=TARGET_TABLE)
+    except Exception:
+        # Best-effort; do not fail the refresh if metadata touch fails
+        pass
+
     return count
+
+
+# Read services
+def get_resale_transactions(
+    town: Optional[str] = None,
+    block: Optional[str] = None,
+    flat_type: Optional[str] = None,
+    min_price: Optional[float] = None,
+    max_price: Optional[float] = None,
+    limit: int = 100,
+    offset: int = 0,
+) -> List[ResaleTransaction]:
+    where = []
+    params = []
+    if town:
+        where.append("LOWER(town) = LOWER(%s)")
+        params.append(town)
+    if block:
+        where.append("LOWER(block) = LOWER(%s)")
+        params.append(block)
+    if flat_type:
+        where.append("LOWER(flat_type) = LOWER(%s)")
+        params.append(flat_type)
+    if min_price is not None:
+        where.append("resale_price >= %s")
+        params.append(min_price)
+    if max_price is not None:
+        where.append("resale_price <= %s")
+        params.append(max_price)
+
+    where_sql = f"WHERE {' AND '.join(where)}" if where else ""
+
+    sql = f"""
+        SELECT id, month, town, flat_type, block, street_name, storey_range,
+               floor_area_sqm, flat_model, lease_commence_date, remaining_lease,
+               resale_price
+        FROM {TARGET_TABLE}
+        {where_sql}
+        ORDER BY id
+        LIMIT %s OFFSET %s
+    """
+
+    params.extend([limit, offset])
+    with db_postgres_conn() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(sql, params)
+            rows = cur.fetchall()
+            return [ResaleTransaction(**r) for r in rows]
+
+
+def get_resale_transaction_by_id(item_id: int) -> Optional[ResaleTransaction]:
+    sql = f"""
+        SELECT id, month, town, flat_type, block, street_name, storey_range,
+               floor_area_sqm, flat_model, lease_commence_date, remaining_lease,
+               resale_price
+        FROM {TARGET_TABLE}
+        WHERE id = %s
+    """
+    with db_postgres_conn() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(sql, [item_id])
+            row = cur.fetchone()
+            return ResaleTransaction(**row) if row else None

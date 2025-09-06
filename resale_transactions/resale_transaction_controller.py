@@ -1,11 +1,11 @@
 from typing import List, Optional
-import psycopg2
-from psycopg2.extras import RealDictCursor
 from fastapi import APIRouter, HTTPException, Query
 
-from common.database import db_postgres_conn
-from resale_transactions.resale_transaction import (
-    ResaleTransaction,
+from resale_transactions.resale_transaction import ResaleTransaction
+from resale_transactions.resale_transaction_service import (
+    get_resale_transactions,
+    get_resale_transaction_by_id,
+    refresh_resale_transaction_table,
 )
 
 try:
@@ -30,57 +30,30 @@ def list_resale_transactions(
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),
 ):
-    where = []
-    params = []
-    if town:
-        where.append("LOWER(town) = LOWER(%s)")
-        params.append(town)
-    if block:
-        where.append("LOWER(block) = LOWER(%s)")
-        params.append(block)
-    if flat_type:
-        where.append("LOWER(flat_type) = LOWER(%s)")
-        params.append(flat_type)
-    if min_price is not None:
-        where.append("resale_price >= %s")
-        params.append(min_price)
-    if max_price is not None:
-        where.append("resale_price <= %s")
-        params.append(max_price)
-
-    where_sql = f"WHERE {' AND '.join(where)}" if where else ""
-
-    sql = f"""
-        SELECT id, month, town, flat_type, block, street_name, storey_range,
-               floor_area_sqm, flat_model, lease_commence_date, remaining_lease,
-               resale_price
-        FROM resale_transactions
-        {where_sql}
-        ORDER BY id
-        LIMIT %s OFFSET %s
-    """
-
-    params.extend([limit, offset])
-    with db_postgres_conn() as conn:
-        with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute(sql, params)
-            rows = cur.fetchall()
-            return [ResaleTransaction(**r) for r in rows]
+    return get_resale_transactions(
+        town=town,
+        block=block,
+        flat_type=flat_type,
+        min_price=min_price,
+        max_price=max_price,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.get("/{item_id}", response_model=ResaleTransaction)
 def get_resale_transaction(item_id: int):
-    sql = """
-        SELECT id, month, town, flat_type, block, street_name, storey_range,
-               floor_area_sqm, flat_model, lease_commence_date, remaining_lease,
-               resale_price
-        FROM resale_transactions
-        WHERE id = %s
-    """
-    with db_postgres_conn() as conn:
-        with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute(sql, [item_id])
-            row = cur.fetchone()
-            if not row:
-                raise HTTPException(status_code=404, detail="Not found")
-            return ResaleTransaction(**row)
+    item = get_resale_transaction_by_id(item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Not found")
+    return item
+
+
+@router.post("/refresh")
+def refresh_resale_transactions():
+    """Download latest CSV and refresh the resale_transactions table."""
+    try:
+        inserted = refresh_resale_transaction_table()
+        return {"inserted": inserted}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

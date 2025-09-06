@@ -14,31 +14,40 @@ from common.util.download_dataset import (
 )
 from table_metadata.table_metadata_service import touch_table_metadata
 
-TABLE_NAME = table_name_from_folder(__file__, override_env_var="BUILDING_POLYGONS_TABLE")
+MAIN_TABLE = table_name_from_folder(__file__, override_env_var="RAIL_STATIONS_TABLE")
+# Related tables (can be overridden by env if needed)
+LINES_TABLE = os.getenv("RAIL_LINES_TABLE", "rail_lines")
+LINK_TABLE = os.getenv("RAIL_STATION_LINES_TABLE", f"{MAIN_TABLE}_lines")
 
 
-def list_building_polygons(
-    block: Optional[str] = None,
-    postal_code: Optional[str] = None,
+def list_rail_stations(
+    name: Optional[str] = None,
+    ground_level: Optional[str] = None,
     limit: int = 100,
     offset: int = 0,
 ) -> List[Dict[str, Any]]:
     where = []
     params: List[Any] = []
-    if block:
-        where.append("LOWER(block) = LOWER(%s)")
-        params.append(block)
-    if postal_code:
-        where.append("postal_code = %s")
-        params.append(postal_code)
+    if name:
+        where.append("LOWER(s.name) LIKE LOWER(%s)")
+        params.append(f"%{name}%")
+    if ground_level:
+        where.append("LOWER(s.ground_level) = LOWER(%s)")
+        params.append(ground_level)
     where_sql = f"WHERE {' AND '.join(where)}" if where else ""
 
     sql = f"""
-        SELECT id, block, postal_code, postal_code_key_id,
-               ST_AsGeoJSON(building_polygon) AS building_polygon
-        FROM {TABLE_NAME}
+        SELECT s.id,
+               s.name,
+               s.ground_level,
+               ST_AsGeoJSON(s.building_polygon) AS building_polygon,
+               COALESCE(array_agg(DISTINCT l.abbreviation) FILTER (WHERE l.id IS NOT NULL), ARRAY[]::text[]) AS lines
+        FROM {MAIN_TABLE} AS s
+        LEFT JOIN {LINK_TABLE} AS ml ON ml.mrt_station_id = s.id
+        LEFT JOIN {LINES_TABLE} AS l ON l.id = ml.line_id
         {where_sql}
-        ORDER BY id
+        GROUP BY s.id
+        ORDER BY s.id
         LIMIT %s OFFSET %s
     """
     params.extend([limit, offset])
@@ -47,19 +56,24 @@ def list_building_polygons(
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(sql, params)
             rows = cur.fetchall()
-            # Convert geometry string to JSON
             for r in rows:
                 if isinstance(r.get("building_polygon"), str):
                     r["building_polygon"] = json.loads(r["building_polygon"])  # type: ignore
             return rows
 
 
-def get_building_polygon_by_id(item_id: int) -> Optional[Dict[str, Any]]:
+def get_rail_station_by_id(item_id: int) -> Optional[Dict[str, Any]]:
     sql = f"""
-        SELECT id, block, postal_code, postal_code_key_id,
-               ST_AsGeoJSON(building_polygon) AS building_polygon
-        FROM {TABLE_NAME}
-        WHERE id = %s
+        SELECT s.id,
+               s.name,
+               s.ground_level,
+               ST_AsGeoJSON(s.building_polygon) AS building_polygon,
+               COALESCE(array_agg(DISTINCT l.abbreviation) FILTER (WHERE l.id IS NOT NULL), ARRAY[]::text[]) AS lines
+        FROM {MAIN_TABLE} AS s
+        LEFT JOIN {LINK_TABLE} AS ml ON ml.mrt_station_id = s.id
+        LEFT JOIN {LINES_TABLE} AS l ON l.id = ml.line_id
+        WHERE s.id = %s
+        GROUP BY s.id
     """
     with db_postgres_conn() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
@@ -70,16 +84,14 @@ def get_building_polygon_by_id(item_id: int) -> Optional[Dict[str, Any]]:
             return row
 
 
-DATASET_ID = "d_16b157c52ed637edd6ba1232e026258d"
+DATASET_ID = "d_9a6bdc9d93bd041eb0cfbb6a8cb3248f"
 
 
-def refresh_building_polygon_table() -> int:
+def refresh_rail_stations_table() -> int:
     """
-    Fetch GeoJSON for the configured dataset id, strip Z from all coordinates,
-    extract block and postal code from feature descriptions, and replace the
-    entire building polygons table with the new data.
-
-    Returns the number of rows inserted.
+    Fetch MRT stations GeoJSON from data.gov.sg, strip Z from coordinates,
+    extract NAME and GRND_LEVEL from feature description, and replace the
+    entire rail stations table with the new data. Returns inserted row count.
     """
 
     # 1) Download and parse GeoJSON
@@ -94,7 +106,7 @@ def refresh_building_polygon_table() -> int:
         raise RuntimeError("Expected a GeoJSON FeatureCollection")
 
     features = geojson.get("features") or []
-    rows: List[Tuple[str, str, str]] = []  # (block, postal_code, geom_json_text)
+    rows: List[Tuple[str, str, str]] = []  # (name, ground_level, geom_json_text)
 
     for feat in features:
         if not isinstance(feat, dict):
@@ -105,14 +117,14 @@ def refresh_building_polygon_table() -> int:
         # Parse attributes from Description HTML
         desc = (props or {}).get("Description") or ""
         meta = parse_description(desc) if isinstance(desc, str) else {}
-        block = meta.get("BLK_NO") or meta.get("BLK NO") or meta.get("BLK_NO".lower()) or meta.get("BLK NO".lower())
-        postal_code = meta.get("POSTAL_COD") or meta.get("POSTAL COD") or meta.get("POSTAL_COD".lower()) or meta.get("POSTAL COD".lower())
+        name = meta.get("NAME") or meta.get("name")
+        ground_level = meta.get("GRND_LEVEL") or meta.get("GRND LEVEL") or meta.get("grnd_level")
 
-        if not block or not postal_code:
+        if not name or not ground_level:
             # Skip features without required metadata
             continue
 
-        # Ensure geometry is a Polygon (or MultiPolygon) and strip Z
+        # Ensure geometry is a Polygon and strip Z
         if not isinstance(geom, dict) or "type" not in geom or "coordinates" not in geom:
             continue
         gtype = geom.get("type")
@@ -121,19 +133,18 @@ def refresh_building_polygon_table() -> int:
             coords2d = strip_z_polygon_coords(coords)  # type: ignore[arg-type]
             cleaned_geom = {"type": "Polygon", "coordinates": coords2d}
         else:
-            # unsupported geometry type
             continue
 
-        rows.append((str(block), str(postal_code), json.dumps(cleaned_geom)))
+        rows.append((str(name), str(ground_level), json.dumps(cleaned_geom)))
 
-    # 2) Replace table contents atomically
+    # 2) Replace table contents atomically and touch metadata
     with db_postgres_conn() as conn:
         with conn.cursor() as cur:
-            cur.execute(f"TRUNCATE TABLE {TABLE_NAME} RESTART IDENTITY;")
+            cur.execute(f"TRUNCATE TABLE {MAIN_TABLE} RESTART IDENTITY;")
             if rows:
                 cur.executemany(
                     f"""
-                    INSERT INTO {TABLE_NAME} (block, postal_code, building_polygon)
+                    INSERT INTO {MAIN_TABLE} (name, ground_level, building_polygon)
                     VALUES (
                         %s,
                         %s,
@@ -142,9 +153,12 @@ def refresh_building_polygon_table() -> int:
                     """,
                     rows,
                 )
-    # Touch table metadata after successful refresh (best-effort)
+
+    # Touch table metadata after successful refresh
     try:
-        touch_table_metadata(table_name=TABLE_NAME)
+        touch_table_metadata(table_name=MAIN_TABLE)
     except Exception:
         pass
+
     return len(rows)
+

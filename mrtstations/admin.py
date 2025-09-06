@@ -8,7 +8,7 @@ from common.util.utils import update_timestamps_table_lastupdated, get_table_las
 from celery import shared_task
 from celery_progress.backend import ProgressRecorder
 from io import BytesIO
-from mrtstations.static_data import STATIONS
+from mrt_stations.static_data import STATIONS
 
 # Register your models here.
 @admin.register(Line)

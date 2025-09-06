@@ -1,5 +1,5 @@
 # static list of mrt stations here
-LINES= {
+LINES = {
     "NSL": {"name": "NORTH-SOUTH LINE", "colour": "d42e12", "rail_type": "MRT"},
     "EWL": {"name": "EAST-WEST LINE", "colour": "009645", "rail_type": "MRT"},
     "CGL": {"name": "EAST-WEST CHANGI LINE", "colour": "009645", "rail_type": "MRT"},
@@ -13,9 +13,9 @@ LINES= {
     "BPL": {"name": "BUKIT PANJANG LRT", "colour": "768579", "rail_type": "LRT"},
     "SKL": {"name": "SENGKANG LRT", "colour": "768579", "rail_type": "LRT"},
     "PGL": {"name": "PUNGGOL LRT", "colour": "768579", "rail_type": "LRT"}
-  }
+}
 
-STATIONS= {
+STATIONS = {
     # EWL
     "PASIR RIS INTERCHANGE": ["EWL", "CRL"],
     "TAMPINES": ["EWL", "DTL"],
@@ -39,23 +39,23 @@ STATIONS= {
     "COMMONWEALTH": ["EWL"],
     "BUONA VISTA INTERCHANGE": ["EWL", "CCL"],
     "DOVER": ["EWL"],
-    "CLEMENTI": ["EWL","CRL"],
+    "CLEMENTI": ["EWL", "CRL"],
     "JURONG EAST INTERCHANGE": ["EWL", "NSL", "JRL"],
     "CHINESE GARDEN": ["EWL"],
     "LAKESIDE": ["EWL"],
-    "BOON LAY INTERCHANGE": ["EWL","JRL"],
+    "BOON LAY INTERCHANGE": ["EWL", "JRL"],
     "PIONEER": ["EWL"],
     "JOO KOON": ["EWL"],
-    "GUL CIRCLE": ["EWL","CRL"],
+    "GUL CIRCLE": ["EWL", "CRL"],
     "TUAS CRESCENT": ["EWL"],
     "TUAS WEST ROAD": ["EWL"],
     "TUAS LINK": ["EWL"],
 
-# CGL
-    "EXPO INTERCHANGE": ["CGL","DTL"],
+    # CGL
+    "EXPO INTERCHANGE": ["CGL", "DTL"],
     "CHANGI AIRPORT": ["CGL"],
 
-# NSL
+    # NSL
     "BUKIT BATOK": ["NSL"],
     "BUKIT GOMBAK": ["NSL"],
     "CHOA CHU KANG": ["NSL", "JRL", "BPL"],
@@ -81,7 +81,7 @@ STATIONS= {
     "MARINA BAY": ["NSL", "TEL", "CCL"],
     "MARINA SOUTH PIER": ["NSL"],
 
-# NEL
+    # NEL
     "PUNGGOL COAST": ["NEL"],
     "PUNGGOL": ["NEL", "PGL", "CPL"],
     "SENGKANG": ["NEL", "SKL"],
@@ -98,7 +98,7 @@ STATIONS= {
     "CHINATOWN": ["NEL", "DTL"],
     "HARBOURFRONT INTERCHANGE": ["NEL", "CCL"],
 
-# SKL
+    # SKL
     "COMPASSVALE": ["SKL"],
     "RUMBIA": ["SKL"],
     "BAKAU": ["SKL"],
@@ -113,15 +113,15 @@ STATIONS= {
     "TONGKANG": ["SKL"],
     "RENJONG": ["SKL"],
 
-# PGL
+    # PGL
     "COVE": ["PGL"],
     "MERIDIAN": ["PGL"],
     "CORAL EDGE": ["PGL"],
-    "RIVIERA": ["PGL","CPL"],
+    "RIVIERA": ["PGL", "CPL"],
     "KADALOOR": ["PGL"],
     "OASIS": ["PGL"],
     "DAMAI": ["PGL"],
-    "SAM KEE": ["PGL"],#! SHOWN AS SUM KEE IN DB
+    "SAM KEE": ["PGL"],  # ! SHOWN AS SUM KEE IN DB
     "TECK LEE": ["PGL"],
     "PUNGGOL POINT": ["PGL"],
     "SAMUDERA": ["PGL"],
@@ -129,7 +129,7 @@ STATIONS= {
     "SUMANG": ["PGL"],
     "SOO TECK": ["PGL"],
 
-# CCL
+    # CCL
     "BRAS BASAH": ["CCL"],
     "ESPLANADE": ["CCL"],
     "PROMENADE": ["CCL", "DTL"],
@@ -155,22 +155,22 @@ STATIONS= {
     "KEPPEL": ["CCL"],
     "CANTONMENT": ["CCL"],
     "PRINCE EDWARD ROAD": ["CCL"],
-    "BAYFRONT": ["CCL","DTL"],
+    "BAYFRONT": ["CCL", "DTL"],
 
-# DTL
+    # DTL
     "BUKIT PANJANG": ["DTL", "BPL"],
     "CASHEW": ["DTL"],
     "HILLVIEW": ["DTL"],
     "HUME": ["DTL"],
     "BEAUTY WORLD": ["DTL"],
-    "KING ALBERT PARK": ["DTL","CRL"],
+    "KING ALBERT PARK": ["DTL", "CRL"],
     "SIXTH AVENUE": ["DTL"],
     "TAN KAH KEE": ["DTL"],
     "STEVENS INTERCHANGE": ["DTL", "TEL"],
     "ROCHOR": ["DTL"],
     "DOWNTOWN": ["DTL"],
     "TELOK AYER": ["DTL"],
-    "FORT CANNING": ["DTL"],#! IS SHOWN AS RIVER VALLEY IN DB
+    "FORT CANNING": ["DTL"],  # ! IS SHOWN AS RIVER VALLEY IN DB
     "BENCOOLEN": ["DTL"],
     "JALAN BESAR": ["DTL"],
     "BENDEMEER": ["DTL"],
@@ -185,14 +185,14 @@ STATIONS= {
     "UPPER CHANGI": ["DTL"],
     "XILIN": ["DTL"],
     "SUNGEI BEDOK": ["DTL", "TEL"],
-    
+
     # TEL
     "WOODLANDS NORTH STATION": ["TEL"],
     "WOODLANDS SOUTH": ["TEL"],
     "SPRINGLEAF": ["TEL"],
     "LENTOR": ["TEL"],
     "MAYFLOWER": ["TEL"],
-    "BRIGHTHILL INTERCHANGE": ["TEL","CRL"],
+    "BRIGHTHILL INTERCHANGE": ["TEL", "CRL"],
     "UPPER THOMSON": ["TEL"],
     "MOUNT PLEASANT": ["TEL"],
     "NAPIER": ["TEL"],
@@ -213,7 +213,7 @@ STATIONS= {
     "BAYSHORE": ["TEL"],
     "BEDOK SOUTH": ["TEL"],
 
-# BPL
+    # BPL
     "SOUTH VIEW": ["BPL"],
     "KEAT HONG": ["BPL"],
     "TECK WHYE": ["BPL"],
@@ -266,4 +266,4 @@ STATIONS= {
     "NANYANG GATEWAY": ["JRL"],
     "NANYANG CRESCENT": ["JRL"],
     "PENG KANG HILL": ["JRL"],
-  }
+}
