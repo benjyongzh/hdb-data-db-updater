@@ -1,7 +1,6 @@
 import os
 import json
 from typing import Any, Dict, List, Optional, Tuple
-import psycopg2
 from psycopg2.extras import RealDictCursor
 
 from common.database import db_postgres_conn
@@ -13,6 +12,7 @@ from common.util.download_dataset import (
     strip_z_polygon_coords,
 )
 from table_metadata.table_metadata_service import touch_table_metadata
+from rail_stations.static_data import STATIONS
 
 MAIN_TABLE = table_name_from_folder(__file__, override_env_var="RAIL_STATIONS_TABLE")
 # Related tables (can be overridden by env if needed)
@@ -154,6 +154,37 @@ def refresh_rail_stations_table() -> int:
                     rows,
                 )
 
+            # 3) Refresh join table based on static STATIONS mapping
+            # Build lookup maps: station name -> id, line abbr -> id
+            cur.execute(f"SELECT id, name FROM {MAIN_TABLE};")
+            name_to_id = {n.lower(): i for (i, n) in cur.fetchall()}
+
+            cur.execute(f"SELECT id, abbreviation FROM {LINES_TABLE};")
+            abbr_to_id = {a.upper(): i for (i, a) in cur.fetchall()}
+
+            # Prepare link rows
+            link_rows: List[Tuple[int, int]] = []
+            for station_name, line_abbrs in STATIONS.items():
+                sid = name_to_id.get(str(station_name).lower())
+                if not sid:
+                    continue
+                for abbr in (line_abbrs or []):
+                    lid = abbr_to_id.get(str(abbr).upper())
+                    if lid:
+                        link_rows.append((sid, lid))
+
+            # Truncate and insert into link table
+            cur.execute(f"TRUNCATE TABLE {LINK_TABLE} RESTART IDENTITY;")
+            if link_rows:
+                cur.executemany(
+                    f"""
+                    INSERT INTO {LINK_TABLE} (mrt_station_id, line_id)
+                    VALUES (%s, %s)
+                    ON CONFLICT DO NOTHING
+                    """,
+                    link_rows,
+                )
+
     # Touch table metadata after successful refresh
     try:
         touch_table_metadata(table_name=MAIN_TABLE)
@@ -161,4 +192,3 @@ def refresh_rail_stations_table() -> int:
         pass
 
     return len(rows)
-

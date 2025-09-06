@@ -1,7 +1,6 @@
 import os
 import json
 from typing import Any, Dict, List, Optional, Tuple
-import psycopg2
 from psycopg2.extras import RealDictCursor
 
 from common.database import db_postgres_conn

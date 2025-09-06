@@ -1,4 +1,3 @@
-from resale_transactions.resale_transaction_service import META_URL
 import requests
 from requests.exceptions import HTTPError
 import re

@@ -1,5 +1,4 @@
 import os
-import psycopg2
 from typing import Any, Dict, List, Optional
 from psycopg2.extras import RealDictCursor
 
