@@ -49,6 +49,6 @@ def strip_z_polygon_coords(coords: List[List[List[float]]]) -> List[List[List[fl
     return [[ [pt[0], pt[1]] for pt in ring ] for ring in coords]
 
 
-def strip_z_multipolygon_coords(coords: List[List[List[List[float]]]]) -> List[List[List[List[float]]]]]:
+def strip_z_multipolygon_coords(coords: List[List[List[List[float]]]]) -> List[List[List[List[float]]]]:
     """Drop the Z component from MultiPolygon coordinates array."""
     return [ strip_z_polygon_coords(poly) for poly in coords ]
