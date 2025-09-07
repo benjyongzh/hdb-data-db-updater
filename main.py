@@ -1,40 +1,56 @@
-import psycopg2
 from dotenv import dotenv_values
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from resale_transactions.resale_transaction_controller import router as resale_tx_router
+from postal_codes.postal_code_controller import router as postal_codes_router
+from building_polygons.building_polygon_controller import router as building_polygons_router
+from rail_stations.rail_station_controller import router as rail_stations_router
+from rail_lines.rail_line_controller import router as rail_lines_router
+from table_metadata.table_metadata_controller import router as table_metadata_router
+from tasks.tasks_controller import router as tasks_router
 
+
+app = FastAPI(title="hdb-data-db-updater")
+
+# CORS configuration
 config = dotenv_values(".env")
+origins_str = (config.get("CORS_ORIGINS", "*") if isinstance(config, dict) else "*")
+origins = [o.strip() for o in origins_str.split(",")] if origins_str and origins_str != "*" else ["*"]
 
-conn = psycopg2.connect(host=config["DB_HOST"],dbname = config["DB_NAME"], user=config["DB_USER"], password=config["DB_PASSWORD"], port=config["DB_PORT"])
+# If allowing all origins, do not allow credentials to comply with CORS spec
+allow_credentials = False if origins == ["*"] else True
 
-cur = conn.cursor()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=allow_credentials,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-#do stuff
 
-cur.execute("""--sql
-            CREATE TEMPORARY TABLE tmp_table AS SELECT * FROM practice WITH NO DATA;
-            """)
+@app.get("/")
+def root():
+    return {"message": "HDB Data DB Updater API"}
 
-with open(config["CSV_FILE_PATH"]) as f:
-    cur.copy_expert('COPY tmp_table FROM STDIN WITH HEADER CSV', f)
 
-cur.execute("""--sql
-            INSERT INTO practice SELECT * FROM tmp_table ON CONFLICT DO NOTHING;
-            """)
+@app.get("/health")
+def health():
+    return {"status": "ok"}
 
-cur.execute("""SELECT * FROM practice;""")
-for row in cur.fetchall():
-    print(row)
 
-cur.execute("""--sql
-            DROP TABLE tmp_table;
-            """)
+# Mount routers
+app.include_router(resale_tx_router)
+app.include_router(postal_codes_router)
+app.include_router(building_polygons_router)
+app.include_router(rail_stations_router)
+app.include_router(rail_lines_router)
+app.include_router(table_metadata_router)
+app.include_router(tasks_router)
 
-conn.commit()
 
-cur.close()
-conn.close()
+if __name__ == "__main__":
+    # Local dev entrypoint: uvicorn with reload
+    import uvicorn
 
-# do same gathering of data for building-polygons
-
-# execute merging of tables with building-polygons. save as 3rd table. subprocess in python
-
-# learn djnago as backend
+    uvicorn.run("main:app", port=8000, reload=True)

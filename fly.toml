@@ -1,0 +1,33 @@
+# Fly.io app configuration for the Celery worker
+# Rename `app` to your actual app name before deploying.
+
+app = "hdb-resale-price-data-worker"
+primary_region = "sin"  # Singapore; change to your nearest region
+
+[build]
+  # Uses the Dockerfile at project root to build the image
+  dockerfile = "Dockerfile"
+
+[env]
+  PYTHONUNBUFFERED = "1"
+
+[processes]
+  # Single-concurrency worker to respect OneMap rate limits and keep memory stable
+  worker = "celery -A celery_app.celery worker -l info -c 1 --time-limit 3600 --maxtasksperchild 10"
+
+# No network services exposed; this app is a background worker only.
+# Set secrets before deploy:
+#   fly secrets set \
+#     DB_HOST=... DB_PORT=... DB_NAME=... DB_USER=... DB_PASSWORD=... \
+#     CELERY_BROKER_URL=... CELERY_RESULT_BACKEND=...
+
+# Scale to 1 worker by default:
+[deploy]
+  strategy = "immediate"
+
+[vm]
+  # shared-cpu-1x with 256MB memory (1GB is usually sufficient)
+  memory = 256
+  cpu_kind = "shared"
+  cpus = 1
+
