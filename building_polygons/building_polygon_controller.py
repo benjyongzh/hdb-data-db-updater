@@ -7,6 +7,7 @@ from building_polygons.building_polygon_service import (
     get_building_polygon_by_id,
     list_building_polygons,
 )
+from tasks.jobs import refresh_building_polygons_task
 
 
 router = APIRouter(prefix="/api/building-polygons", tags=["building-polygons"])
@@ -35,3 +36,8 @@ def get_polygon(item_id: int):
         raise HTTPException(status_code=404, detail="Not found")
     return BuildingPolygon(**row)
 
+
+@router.post("/refresh")
+def refresh_building_polygons():
+    result = refresh_building_polygons_task.delay()
+    return {"task_id": result.id}

@@ -6,8 +6,8 @@ from rail_stations.rail_station import RailStation
 from rail_stations.rail_station_service import (
     list_rail_stations,
     get_rail_station_by_id,
-    refresh_rail_stations_table,
 )
+from tasks.jobs import refresh_rail_stations_task
 
 
 router = APIRouter(prefix="/api/rail-stations", tags=["rail-stations"])
@@ -39,6 +39,5 @@ def get_station(item_id: int):
 
 @router.post("/refresh")
 def refresh():
-    count = refresh_rail_stations_table()
-    return {"inserted": count}
-
+    result = refresh_rail_stations_task.delay()
+    return {"task_id": result.id}

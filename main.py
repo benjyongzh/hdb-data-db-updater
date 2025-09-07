@@ -7,6 +7,7 @@ from building_polygons.building_polygon_controller import router as building_pol
 from rail_stations.rail_station_controller import router as rail_stations_router
 from rail_lines.rail_line_controller import router as rail_lines_router
 from table_metadata.table_metadata_controller import router as table_metadata_router
+from tasks.tasks_controller import router as tasks_router
 
 
 app = FastAPI(title="hdb-data-db-updater")
@@ -45,6 +46,7 @@ app.include_router(building_polygons_router)
 app.include_router(rail_stations_router)
 app.include_router(rail_lines_router)
 app.include_router(table_metadata_router)
+app.include_router(tasks_router)
 
 
 if __name__ == "__main__":

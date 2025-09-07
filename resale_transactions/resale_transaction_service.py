@@ -134,7 +134,7 @@ def get_resale_transactions(
     where_sql = f"WHERE {' AND '.join(where)}" if where else ""
 
     sql = f"""
-        SELECT id, month, town, flat_type, block, street_name, storey_range,
+        SELECT id, month, town, flat_type, block, street_name, postal_code_key_id, storey_range,
                floor_area_sqm, flat_model, lease_commence_date, remaining_lease,
                resale_price
         FROM {TARGET_TABLE}
@@ -153,7 +153,7 @@ def get_resale_transactions(
 
 def get_resale_transaction_by_id(item_id: int) -> Optional[ResaleTransaction]:
     sql = f"""
-        SELECT id, month, town, flat_type, block, street_name, storey_range,
+        SELECT id, month, town, flat_type, block, street_name, postal_code_key_id, storey_range,
                floor_area_sqm, flat_model, lease_commence_date, remaining_lease,
                resale_price
         FROM {TARGET_TABLE}

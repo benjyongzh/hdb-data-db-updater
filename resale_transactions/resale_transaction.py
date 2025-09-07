@@ -9,6 +9,7 @@ class ResaleTransaction(BaseModel):
     flat_type: str
     block: str
     street_name: str
+    postal_code_key_id: Optional[int] = None
     storey_range: str
     floor_area_sqm: float
     flat_model: str

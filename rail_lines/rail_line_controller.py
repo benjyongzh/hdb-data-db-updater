@@ -6,8 +6,8 @@ from rail_lines.rail_line import RailLine
 from rail_lines.rail_line_service import (
     list_rail_lines,
     get_rail_line_by_id,
-    refresh_rail_lines_table,
 )
+from tasks.jobs import refresh_rail_lines_task
 
 
 router = APIRouter(prefix="/api/rail-lines", tags=["rail-lines"])
@@ -41,5 +41,5 @@ def get_line(item_id: int):
 
 @router.post("/refresh")
 def refresh():
-    count = refresh_rail_lines_table()
-    return {"inserted": count}
+    result = refresh_rail_lines_task.delay()
+    return {"task_id": result.id}

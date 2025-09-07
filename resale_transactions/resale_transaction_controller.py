@@ -5,8 +5,8 @@ from resale_transactions.resale_transaction import ResaleTransaction
 from resale_transactions.resale_transaction_service import (
     get_resale_transactions,
     get_resale_transaction_by_id,
-    refresh_resale_transaction_table,
 )
+from tasks.jobs import refresh_resale_transactions_task
 
 try:
     # Load .env if present (non-fatal if missing)
@@ -51,9 +51,9 @@ def get_resale_transaction(item_id: int):
 
 @router.post("/refresh")
 def refresh_resale_transactions():
-    """Download latest CSV and refresh the resale_transactions table."""
+    """Enqueue background task to refresh resale transactions and link postal codes."""
     try:
-        inserted = refresh_resale_transaction_table()
-        return {"inserted": inserted}
+        async_result = refresh_resale_transactions_task.delay()
+        return {"task_id": async_result.id}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

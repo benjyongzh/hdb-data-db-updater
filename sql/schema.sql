@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS resale_transactions (
     flat_type TEXT NOT NULL,
     block TEXT NOT NULL,
     street_name TEXT NOT NULL,
+    postal_code_key_id INTEGER NULL REFERENCES postal_codes(id) ON UPDATE CASCADE ON DELETE SET NULL,
     storey_range TEXT NOT NULL,
     floor_area_sqm NUMERIC NOT NULL,
     flat_model TEXT NOT NULL,
@@ -21,6 +22,7 @@ CREATE INDEX IF NOT EXISTS idx_resale_transactions_town_ci ON resale_transaction
 CREATE INDEX IF NOT EXISTS idx_resale_transactions_block_ci ON resale_transactions (LOWER(block));
 CREATE INDEX IF NOT EXISTS idx_resale_transactions_flat_type_ci ON resale_transactions (LOWER(flat_type));
 CREATE INDEX IF NOT EXISTS idx_resale_transactions_resale_price ON resale_transactions (resale_price);
+CREATE INDEX IF NOT EXISTS idx_resale_transactions_postal_fk ON resale_transactions (postal_code_key_id);
 
 -- postal_codes
 CREATE TABLE IF NOT EXISTS postal_codes (
