@@ -5,8 +5,9 @@
       "maxDuration": 30
     }
   },
-  "rewrites": [
-    { "source": "/", "destination": "/api" },
-    { "source": "/health", "destination": "/api/health" }
+  "routes": [
+    { "src": "^/api($|/.*)", "dest": "api/index.py" },
+    { "src": "^/$", "dest": "/api" },
+    { "src": "^/health$", "dest": "/api/health" }
   ]
 }

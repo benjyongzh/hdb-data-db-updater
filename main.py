@@ -10,7 +10,7 @@ from table_metadata.table_metadata_controller import router as table_metadata_ro
 from tasks.tasks_controller import router as tasks_router
 
 
-app = FastAPI(title="hdb-data-db-updater")
+app = FastAPI(title="hdb-data-db-updater", root_path="/api")
 
 # CORS configuration
 config = dotenv_values(".env")
