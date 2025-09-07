@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from psycopg2.extras import RealDictCursor
 
 from common.database import db_postgres_conn
-from common.table_naming import table_name_from_folder
+from common.util.table_naming import table_name_from_folder
 from common.util.download_dataset import (
     get_download_url,
     download_bytes,

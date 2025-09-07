@@ -2,7 +2,7 @@ from typing import Any, Dict, List, Optional
 from psycopg2.extras import RealDictCursor
 
 from common.database import db_postgres_conn
-from common.table_naming import table_name_from_folder
+from common.util.table_naming import table_name_from_folder
 from table_metadata.table_metadata_service import touch_table_metadata
 from rail_stations.static_data import LINES
 
