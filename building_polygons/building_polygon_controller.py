@@ -1,14 +1,16 @@
-from typing import List, Optional
+from typing import List, Optional, Dict
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Depends
 
 from building_polygons.building_polygon import BuildingPolygon
 from building_polygons.building_polygon_service import (
     get_building_polygon_by_id,
     list_building_polygons,
+    count_building_polygons,
 )
 from tasks.jobs import refresh_building_polygons_task
 from common.response import success_response, error_response
+from common.pagination import pagination_params, build_pagination_meta
 
 
 router = APIRouter(prefix="/building-polygons", tags=["building-polygons"])
@@ -18,18 +20,21 @@ router = APIRouter(prefix="/building-polygons", tags=["building-polygons"])
 def list_polygons(
     block: Optional[str] = Query(None),
     postal_code: Optional[str] = Query(None),
-    limit: int = Query(100, ge=1, le=1000),
-    offset: int = Query(0, ge=0),
+    paging: Dict[str, int] = Depends(pagination_params),
 ):
     try:
         rows = list_building_polygons(
             block=block,
             postal_code=postal_code,
-            limit=limit,
-            offset=offset,
+            limit=paging["limit"],
+            offset=paging["offset"],
         )
         items = [BuildingPolygon(**r) for r in rows]
-        return success_response(items)
+        total = count_building_polygons(block=block, postal_code=postal_code)
+        meta = build_pagination_meta(
+            page=paging["page"], page_size=paging["page_size"], total=total, count=len(items)
+        )
+        return success_response(items, pagination=meta)
     except Exception as e:
         return error_response(500, str(e))
 

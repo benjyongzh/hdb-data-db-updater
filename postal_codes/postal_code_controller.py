@@ -1,15 +1,17 @@
-from typing import List, Optional
+from typing import List, Optional, Dict
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Depends
 
 from postal_codes.postal_code import PostalCode
 from postal_codes.postal_code_service import (
     get_postal_code_by_id,
     list_postal_codes as list_postal_codes_svc,
     reset_postal_codes,
+    count_postal_codes,
 )
 from tasks.jobs import link_resale_to_postal_codes_task
 from common.response import success_response, error_response
+from common.pagination import pagination_params, build_pagination_meta
 
 
 router = APIRouter(prefix="/postal-codes", tags=["postal-codes"])
@@ -20,19 +22,26 @@ def list_postal_codes(
     block: Optional[str] = Query(None),
     street_name: Optional[str] = Query(None),
     postal_code: Optional[str] = Query(None),
-    limit: int = Query(100, ge=1, le=1000),
-    offset: int = Query(0, ge=0),
+    paging: Dict[str, int] = Depends(pagination_params),
 ):
     try:
         rows = list_postal_codes_svc(
             block=block,
             street_name=street_name,
             postal_code=postal_code,
-            limit=limit,
-            offset=offset,
+            limit=paging["limit"],
+            offset=paging["offset"],
         )
         items = [PostalCode(**r) for r in rows]
-        return success_response(items)
+        total = count_postal_codes(
+            block=block,
+            street_name=street_name,
+            postal_code=postal_code,
+        )
+        meta = build_pagination_meta(
+            page=paging["page"], page_size=paging["page_size"], total=total, count=len(items)
+        )
+        return success_response(items, pagination=meta)
     except Exception as e:
         return error_response(500, str(e))
 

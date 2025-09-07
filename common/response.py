@@ -4,12 +4,18 @@ from fastapi.encoders import jsonable_encoder
 from starlette.responses import JSONResponse
 
 
-def success_response(data: Any, status_code: int = 200) -> JSONResponse:
+def success_response(
+    data: Any,
+    status_code: int = 200,
+    pagination: Optional[Dict[str, Any]] = None,
+) -> JSONResponse:
     payload: Dict[str, Any] = {
         "success": True,
         "status": status_code,
         "data": jsonable_encoder(data),
     }
+    if pagination is not None:
+        payload["pagination"] = jsonable_encoder(pagination)
     return JSONResponse(status_code=status_code, content=payload)
 
 
@@ -24,4 +30,3 @@ def error_response(status_code: int, message: str, code: Optional[int] = None, d
         },
     }
     return JSONResponse(status_code=status_code, content=payload)
-

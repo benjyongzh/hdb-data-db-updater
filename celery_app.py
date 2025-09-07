@@ -22,6 +22,11 @@ celery.conf.update(
     enable_utc=True,
     broker_connection_retry_on_startup=True,
     include=["tasks.jobs"],  # ensure worker imports our task module
+    # Reduce Redis polling frequency: worker blocks up to N seconds
+    broker_transport_options={
+        # Default BRPOP timeout is ~1s; make it configurable with env
+        "brpop_timeout": int(os.getenv("REDIS_BRPOP_TIMEOUT", "10")),
+    },
 )
 
 

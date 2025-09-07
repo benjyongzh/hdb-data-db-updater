@@ -52,6 +52,26 @@ def list_building_polygons(
             return rows
 
 
+def count_building_polygons(
+    block: Optional[str] = None,
+    postal_code: Optional[str] = None,
+) -> int:
+    where = []
+    params: List[Any] = []
+    if block:
+        where.append("LOWER(block) = LOWER(%s)")
+        params.append(block)
+    if postal_code:
+        where.append("postal_code = %s")
+        params.append(postal_code)
+    where_sql = f"WHERE {' AND '.join(where)}" if where else ""
+    sql = f"SELECT COUNT(*) FROM {TABLE_NAME} {where_sql}"
+    with db_postgres_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(sql, params)
+            return int(cur.fetchone()[0])
+
+
 def get_building_polygon_by_id(item_id: int) -> Optional[Dict[str, Any]]:
     sql = f"""
         SELECT id, block, postal_code, postal_code_key_id,

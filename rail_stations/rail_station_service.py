@@ -62,6 +62,26 @@ def list_rail_stations(
             return rows
 
 
+def count_rail_stations(
+    name: Optional[str] = None,
+    ground_level: Optional[str] = None,
+) -> int:
+    where = []
+    params: List[Any] = []
+    if name:
+        where.append("LOWER(s.name) LIKE LOWER(%s)")
+        params.append(f"%{name}%")
+    if ground_level:
+        where.append("LOWER(s.ground_level) = LOWER(%s)")
+        params.append(ground_level)
+    where_sql = f"WHERE {' AND '.join(where)}" if where else ""
+    sql = f"SELECT COUNT(*) FROM {MAIN_TABLE} AS s {where_sql}"
+    with db_postgres_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(sql, params)
+            return int(cur.fetchone()[0])
+
+
 def get_rail_station_by_id(item_id: int) -> Optional[Dict[str, Any]]:
     sql = f"""
         SELECT s.id,

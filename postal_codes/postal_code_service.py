@@ -50,6 +50,30 @@ def list_postal_codes(
             return cur.fetchall()
 
 
+def count_postal_codes(
+    block: Optional[str] = None,
+    street_name: Optional[str] = None,
+    postal_code: Optional[str] = None,
+) -> int:
+    where = []
+    params: List[Any] = []
+    if block:
+        where.append("LOWER(block) = LOWER(%s)")
+        params.append(block)
+    if street_name:
+        where.append("LOWER(street_name) = LOWER(%s)")
+        params.append(street_name)
+    if postal_code:
+        where.append("postal_code = %s")
+        params.append(postal_code)
+    where_sql = f"WHERE {' AND '.join(where)}" if where else ""
+    sql = f"SELECT COUNT(*) FROM {TABLE_NAME} {where_sql}"
+    with db_postgres_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(sql, params)
+            return int(cur.fetchone()[0])
+
+
 def get_postal_code_by_id(item_id: int) -> Optional[Dict[str, Any]]:
     sql = f"""
         SELECT id, block, street_name, postal_code

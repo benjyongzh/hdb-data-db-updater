@@ -1,13 +1,15 @@
-from typing import List, Optional
-from fastapi import APIRouter, Query
+from typing import List, Optional, Dict
+from fastapi import APIRouter, Query, Depends
 
 from resale_transactions.resale_transaction import ResaleTransaction
 from resale_transactions.resale_transaction_service import (
     get_resale_transactions,
     get_resale_transaction_by_id,
+    count_resale_transactions,
 )
 from tasks.jobs import refresh_resale_transactions_task
 from common.response import success_response, error_response
+from common.pagination import pagination_params, build_pagination_meta
 
 try:
     # Load .env if present (non-fatal if missing)
@@ -28,8 +30,7 @@ def list_resale_transactions(
     flat_type: Optional[str] = Query(None),
     min_price: Optional[float] = Query(None, ge=0),
     max_price: Optional[float] = Query(None, ge=0),
-    limit: int = Query(100, ge=1, le=1000),
-    offset: int = Query(0, ge=0),
+    paging: Dict[str, int] = Depends(pagination_params),
 ):
     try:
         rows: List[ResaleTransaction] = get_resale_transactions(
@@ -38,10 +39,20 @@ def list_resale_transactions(
             flat_type=flat_type,
             min_price=min_price,
             max_price=max_price,
-            limit=limit,
-            offset=offset,
+            limit=paging["limit"],
+            offset=paging["offset"],
         )
-        return success_response(rows, status_code=200)
+        total = count_resale_transactions(
+            town=town,
+            block=block,
+            flat_type=flat_type,
+            min_price=min_price,
+            max_price=max_price,
+        )
+        meta = build_pagination_meta(
+            page=paging["page"], page_size=paging["page_size"], total=total, count=len(rows)
+        )
+        return success_response(rows, status_code=200, pagination=meta)
     except Exception as e:
         return error_response(500, str(e))
 

@@ -166,6 +166,39 @@ def get_resale_transactions(
             return [ResaleTransaction(**r) for r in rows]
 
 
+def count_resale_transactions(
+    town: Optional[str] = None,
+    block: Optional[str] = None,
+    flat_type: Optional[str] = None,
+    min_price: Optional[float] = None,
+    max_price: Optional[float] = None,
+) -> int:
+    where = []
+    params = []
+    if town:
+        where.append("LOWER(town) = LOWER(%s)")
+        params.append(town)
+    if block:
+        where.append("LOWER(block) = LOWER(%s)")
+        params.append(block)
+    if flat_type:
+        where.append("LOWER(flat_type) = LOWER(%s)")
+        params.append(flat_type)
+    if min_price is not None:
+        where.append("resale_price >= %s")
+        params.append(min_price)
+    if max_price is not None:
+        where.append("resale_price <= %s")
+        params.append(max_price)
+
+    where_sql = f"WHERE {' AND '.join(where)}" if where else ""
+    sql = f"SELECT COUNT(*) FROM {TARGET_TABLE} {where_sql}"
+    with db_postgres_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(sql, params)
+            return int(cur.fetchone()[0])
+
+
 def get_resale_transaction_by_id(item_id: int) -> Optional[ResaleTransaction]:
     sql = f"""
         SELECT id, month, town, flat_type, block, street_name, postal_code_key_id, storey_range,
