@@ -54,18 +54,18 @@ def refresh_resale_transaction_table() -> int:
                 cur.execute(f"""
                     CREATE TEMP TABLE {STAGING_TABLE} (
                         month TEXT,
-                    town TEXT,
-                    flat_type TEXT,
-                    block TEXT,
-                    street_name TEXT,
-                    storey_range TEXT,
-                    floor_area_sqm NUMERIC,
-                    flat_model TEXT,
-                    lease_commence_date INTEGER,
-                    remaining_lease TEXT,
-                    resale_price NUMERIC
-                ) ON COMMIT DROP;
-            """)
+                        town TEXT,
+                        flat_type TEXT,
+                        block TEXT,
+                        street_name TEXT,
+                        storey_range TEXT,
+                        floor_area_sqm NUMERIC,
+                        flat_model TEXT,
+                        lease_commence_date INTEGER,
+                        remaining_lease TEXT,
+                        resale_price NUMERIC
+                    ) ON COMMIT DROP;
+                """)
 
                 # 2) Bulk COPY the raw CSV into staging (HEADER handled by COPY)
                 with open(tmp_path, "r", encoding="utf-8", newline="") as f:
@@ -75,31 +75,31 @@ def refresh_resale_transaction_table() -> int:
                         file=f,
                     )
 
-            # 3) Replace target: truncate, then insert with row_number() as id (starting at 0)
-            cur.execute(f"TRUNCATE TABLE {TARGET_TABLE} RESTART IDENTITY;")
-            cur.execute(f"""
-                INSERT INTO {TARGET_TABLE} ({', '.join(TARGET_COLS)})
-                SELECT
-                    ROW_NUMBER() OVER (
-                        ORDER BY month, town, flat_type, block, street_name, storey_range
-                    ) - 1 AS id,
-                    month,
-                    town,
-                    flat_type,
-                    block,
-                    street_name,
-                    storey_range,
-                    floor_area_sqm,
-                    flat_model,
-                    lease_commence_date,
-                    remaining_lease,
-                    resale_price
-                FROM {STAGING_TABLE};
-            """)
+                # 3) Replace target: truncate, then insert with row_number() as id (starting at 0)
+                cur.execute(f"TRUNCATE TABLE {TARGET_TABLE} RESTART IDENTITY;")
+                cur.execute(f"""
+                    INSERT INTO {TARGET_TABLE} ({', '.join(TARGET_COLS)})
+                    SELECT
+                        ROW_NUMBER() OVER (
+                            ORDER BY month, town, flat_type, block, street_name, storey_range
+                        ) - 1 AS id,
+                        month,
+                        town,
+                        flat_type,
+                        block,
+                        street_name,
+                        storey_range,
+                        floor_area_sqm,
+                        flat_model,
+                        lease_commence_date,
+                        remaining_lease,
+                        resale_price
+                    FROM {STAGING_TABLE};
+                """)
 
-            # 4) Return count
-            cur.execute(f"SELECT COUNT(*) FROM {TARGET_TABLE};")
-            count = cur.fetchone()[0]
+                # 4) Return count
+                cur.execute(f"SELECT COUNT(*) FROM {TARGET_TABLE};")
+                count = cur.fetchone()[0]
 
     finally:
         if tmp_path and os.path.exists(tmp_path):

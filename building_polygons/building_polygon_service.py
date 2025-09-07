@@ -99,6 +99,7 @@ def refresh_building_polygon_table() -> int:
             cur.execute(f"TRUNCATE TABLE {TABLE_NAME} RESTART IDENTITY;")
             batch: List[Tuple[str, str, str]] = []
             BATCH_SIZE = 500
+            inserted = 0
             for feat in features:
                 if not isinstance(feat, dict):
                     continue
@@ -140,6 +141,7 @@ def refresh_building_polygon_table() -> int:
                         """,
                         batch,
                     )
+                    inserted += len(batch)
                     batch.clear()
 
             if batch:
@@ -154,9 +156,10 @@ def refresh_building_polygon_table() -> int:
                     """,
                     batch,
                 )
+                inserted += len(batch)
     # Touch table metadata after successful refresh (best-effort)
     try:
         touch_table_metadata(table_name=TABLE_NAME)
     except Exception:
         pass
-    return len(rows)
+    return inserted

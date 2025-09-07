@@ -116,6 +116,7 @@ def refresh_rail_stations_table() -> int:
             # Insert in batches to limit memory usage
             batch: List[Tuple[str, str, str]] = []
             BATCH_SIZE = 500
+            inserted = 0
             for feat in features:
                 if not isinstance(feat, dict):
                     continue
@@ -155,6 +156,7 @@ def refresh_rail_stations_table() -> int:
                         """,
                         batch,
                     )
+                    inserted += len(batch)
                     batch.clear()
 
             if batch:
@@ -169,6 +171,7 @@ def refresh_rail_stations_table() -> int:
                     """,
                     batch,
                 )
+                inserted += len(batch)
 
             # 3) Refresh join table based on static STATIONS mapping
             # Build lookup maps: station name -> id, line abbr -> id
@@ -207,4 +210,4 @@ def refresh_rail_stations_table() -> int:
     except Exception:
         pass
 
-    return len(rows)
+    return inserted
