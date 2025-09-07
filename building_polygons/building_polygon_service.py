@@ -92,43 +92,57 @@ def refresh_building_polygon_table() -> int:
         raise RuntimeError("Expected a GeoJSON FeatureCollection")
 
     features = geojson.get("features") or []
-    rows: List[Tuple[str, str, str]] = []  # (block, postal_code, geom_json_text)
 
-    for feat in features:
-        if not isinstance(feat, dict):
-            continue
-        props = feat.get("properties") or {}
-        geom = feat.get("geometry") or {}
-
-        # Parse attributes from Description HTML
-        desc = (props or {}).get("Description") or ""
-        meta = parse_description(desc) if isinstance(desc, str) else {}
-        block = meta.get("BLK_NO") or meta.get("BLK NO") or meta.get("BLK_NO".lower()) or meta.get("BLK NO".lower())
-        postal_code = meta.get("POSTAL_COD") or meta.get("POSTAL COD") or meta.get("POSTAL_COD".lower()) or meta.get("POSTAL COD".lower())
-
-        if not block or not postal_code:
-            # Skip features without required metadata
-            continue
-
-        # Ensure geometry is a Polygon (or MultiPolygon) and strip Z
-        if not isinstance(geom, dict) or "type" not in geom or "coordinates" not in geom:
-            continue
-        gtype = geom.get("type")
-        coords = geom.get("coordinates")
-        if gtype == "Polygon" and isinstance(coords, list):
-            coords2d = strip_z_polygon_coords(coords)  # type: ignore[arg-type]
-            cleaned_geom = {"type": "Polygon", "coordinates": coords2d}
-        else:
-            # unsupported geometry type
-            continue
-
-        rows.append((str(block), str(postal_code), json.dumps(cleaned_geom)))
-
-    # 2) Replace table contents atomically
+    # 2) Replace table contents atomically; insert rows in batches to limit memory usage
     with db_postgres_conn() as conn:
         with conn.cursor() as cur:
             cur.execute(f"TRUNCATE TABLE {TABLE_NAME} RESTART IDENTITY;")
-            if rows:
+            batch: List[Tuple[str, str, str]] = []
+            BATCH_SIZE = 500
+            for feat in features:
+                if not isinstance(feat, dict):
+                    continue
+                props = feat.get("properties") or {}
+                geom = feat.get("geometry") or {}
+
+                # Parse attributes from Description HTML
+                desc = (props or {}).get("Description") or ""
+                meta = parse_description(desc) if isinstance(desc, str) else {}
+                block = meta.get("BLK_NO") or meta.get("BLK NO") or meta.get("BLK_NO".lower()) or meta.get("BLK NO".lower())
+                postal_code = meta.get("POSTAL_COD") or meta.get("POSTAL COD") or meta.get("POSTAL_COD".lower()) or meta.get("POSTAL COD".lower())
+
+                if not block or not postal_code:
+                    # Skip features without required metadata
+                    continue
+
+                # Ensure geometry is a Polygon and strip Z
+                if not isinstance(geom, dict) or "type" not in geom or "coordinates" not in geom:
+                    continue
+                gtype = geom.get("type")
+                coords = geom.get("coordinates")
+                if gtype == "Polygon" and isinstance(coords, list):
+                    coords2d = strip_z_polygon_coords(coords)  # type: ignore[arg-type]
+                    cleaned_geom = {"type": "Polygon", "coordinates": coords2d}
+                else:
+                    continue
+
+                batch.append((str(block), str(postal_code), json.dumps(cleaned_geom)))
+
+                if len(batch) >= BATCH_SIZE:
+                    cur.executemany(
+                        f"""
+                        INSERT INTO {TABLE_NAME} (block, postal_code, building_polygon)
+                        VALUES (
+                            %s,
+                            %s,
+                            ST_SetSRID(ST_GeomFromGeoJSON(%s), 4326)
+                        )
+                        """,
+                        batch,
+                    )
+                    batch.clear()
+
+            if batch:
                 cur.executemany(
                     f"""
                     INSERT INTO {TABLE_NAME} (block, postal_code, building_polygon)
@@ -138,7 +152,7 @@ def refresh_building_polygon_table() -> int:
                         ST_SetSRID(ST_GeomFromGeoJSON(%s), 4326)
                     )
                     """,
-                    rows,
+                    batch,
                 )
     # Touch table metadata after successful refresh (best-effort)
     try:

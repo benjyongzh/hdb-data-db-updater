@@ -4,6 +4,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi import HTTPException
 from starlette.requests import Request
 from common.response import error_response
+from common.temp_cleanup import cleanup_resale_temp_files
 from fastapi.middleware.cors import CORSMiddleware
 from resale_transactions.resale_transaction_controller import router as resale_tx_router
 from postal_codes.postal_code_controller import router as postal_codes_router
@@ -75,3 +76,12 @@ async def handle_http_exception(request: Request, exc: HTTPException):
 @app.exception_handler(Exception)
 async def handle_unexpected_exception(request: Request, exc: Exception):
     return error_response(500, "Internal server error", code=50000)
+
+
+@app.on_event("startup")
+async def cleanup_tmp_on_startup():
+    # Best-effort cleanup of leftover temp files on API start
+    try:
+        cleanup_resale_temp_files()
+    except Exception:
+        pass

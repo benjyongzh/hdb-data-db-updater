@@ -1,10 +1,12 @@
 import io
+import os
+import tempfile
 from typing import List, Optional
 from psycopg2.extras import RealDictCursor
 
 from common.database import db_postgres_conn
 from common.util.table_naming import table_name_from_folder
-from common.util.download_dataset import get_download_url, download_bytes
+from common.util.download_dataset import get_download_url, download_bytes, download_to_file
 from resale_transactions.resale_transaction import ResaleTransaction
 from table_metadata.table_metadata_service import touch_table_metadata
 
@@ -37,16 +39,21 @@ def refresh_resale_transaction_table() -> int:
     Returns number of rows inserted into target.
     """
     download_url = get_download_url("d_8b84c4ee58e3cfc0ece0d773c8ca6abc")
-    csv_bytes = download_bytes(download_url)
+    # Stream to a temporary file to avoid large in-memory buffers
+    tmp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(prefix="resale_prices_", suffix=".csv", delete=False) as tmp:
+            tmp_path = tmp.name
+            download_to_file(download_url, tmp)
 
-    # Use a single psycopg2 connection to ensure atomic swap
-    with db_postgres_conn() as conn:
-        with conn.cursor() as cur:
-            # 1) Create staging (drop if exists). Use a temporary table scoped to this connection
-            cur.execute(f"DROP TABLE IF EXISTS {STAGING_TABLE};")
-            cur.execute(f"""
-                CREATE TEMP TABLE {STAGING_TABLE} (
-                    month TEXT,
+        # Use a single psycopg2 connection to ensure atomic swap
+        with db_postgres_conn() as conn:
+            with conn.cursor() as cur:
+                # 1) Create staging (drop if exists). Use a temporary table scoped to this connection
+                cur.execute(f"DROP TABLE IF EXISTS {STAGING_TABLE};")
+                cur.execute(f"""
+                    CREATE TEMP TABLE {STAGING_TABLE} (
+                        month TEXT,
                     town TEXT,
                     flat_type TEXT,
                     block TEXT,
@@ -60,12 +67,13 @@ def refresh_resale_transaction_table() -> int:
                 ) ON COMMIT DROP;
             """)
 
-            # 2) Bulk COPY the raw CSV into staging (HEADER handled by COPY)
-            cur.copy_expert(
-                f"COPY {STAGING_TABLE} ({', '.join(STAGING_COLS)}) "
-                "FROM STDIN WITH (FORMAT csv, HEADER true)",
-                file=io.StringIO(csv_bytes.decode("utf-8"))
-            )
+                # 2) Bulk COPY the raw CSV into staging (HEADER handled by COPY)
+                with open(tmp_path, "r", encoding="utf-8", newline="") as f:
+                    cur.copy_expert(
+                        f"COPY {STAGING_TABLE} ({', '.join(STAGING_COLS)}) "
+                        "FROM STDIN WITH (FORMAT csv, HEADER true)",
+                        file=f,
+                    )
 
             # 3) Replace target: truncate, then insert with row_number() as id (starting at 0)
             cur.execute(f"TRUNCATE TABLE {TARGET_TABLE} RESTART IDENTITY;")
@@ -92,6 +100,13 @@ def refresh_resale_transaction_table() -> int:
             # 4) Return count
             cur.execute(f"SELECT COUNT(*) FROM {TARGET_TABLE};")
             count = cur.fetchone()[0]
+
+    finally:
+        if tmp_path and os.path.exists(tmp_path):
+            try:
+                os.remove(tmp_path)
+            except Exception:
+                pass
 
     # Touch table metadata after a successful refresh
     try:

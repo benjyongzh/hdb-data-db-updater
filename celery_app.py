@@ -1,5 +1,7 @@
 import os
 from celery import Celery
+from celery.signals import worker_ready
+from common.temp_cleanup import cleanup_resale_temp_files
 
 
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
@@ -26,4 +28,13 @@ celery.conf.update(
 @celery.task(bind=True)
 def ping(self):
     return {"status": "ok"}
+
+
+@worker_ready.connect
+def _cleanup_tmp_on_worker_ready(**kwargs):
+    """Fail-safe: clean leftover temp files when the worker becomes ready."""
+    try:
+        cleanup_resale_temp_files()
+    except Exception:
+        pass
 
