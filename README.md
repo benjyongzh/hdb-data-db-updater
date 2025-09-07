@@ -160,11 +160,7 @@ table_metadata (id PK)
   - `clear-table`: NULLs the FK, then truncates `postal_codes` and resets identity.
 
 **Environment Variables**
-- DB_HOST: PostgreSQL host (default `localhost`).
-- DB_PORT: PostgreSQL port (default `5432`).
-- DB_NAME: Database name (default `postgres`).
-- DB_USER: Database user (default `postgres`).
-- DB_PASSWORD: Database password (default empty).
+- DB_URL: PostgreSQL connection URL (e.g., `postgresql://user:pass@host:5432/db`).
 - CORS_ORIGINS: Comma-separated origins for CORS (default `*`).
 - BUILDING_POLYGONS_TABLE: Override table name for building polygons.
 - POSTAL_CODES_TABLE: Override table name for postal codes.
@@ -174,5 +170,5 @@ table_metadata (id PK)
 - RESALE_TRANSACTIONS_TABLE: Override table name for resale transactions.
 - TABLE_METADATA_TABLE: Override table name for the metadata table.
 - DATA_TABLES_TABLE: Override registry table name for data tables (default `data_tables`).
- - CELERY_BROKER_URL: Redis URL for Celery broker (default `redis://localhost:6379/0`).
- - CELERY_RESULT_BACKEND: Redis URL for Celery result backend (default `redis://localhost:6379/1`).
+- CELERY_BROKER_URL: Redis URL for Celery broker (default `redis://localhost:6379/0`).
+- CELERY_RESULT_BACKEND: Redis URL for Celery result backend (default `redis://localhost:6379/1`).

@@ -18,7 +18,7 @@ primary_region = "sin"  # Singapore; change to your nearest region
 # No network services exposed; this app is a background worker only.
 # Set secrets before deploy:
 #   fly secrets set \
-#     DB_HOST=... DB_PORT=... DB_NAME=... DB_USER=... DB_PASSWORD=... \
+#     DB_URL=... \
 #     CELERY_BROKER_URL=... CELERY_RESULT_BACKEND=...
 
 # Scale to 1 worker by default:
