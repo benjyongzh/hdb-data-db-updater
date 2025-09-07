@@ -19,7 +19,7 @@ Gets HDB data via shell scripts on anacron. Uses data to update a PostgreSQL DB.
   - `uv run uvicorn main:app --host 0.0.0.0 --port 8000 --reload`
 
 Notes
-- Python version: The Pipfile declares Python 3.10. If needed, you can direct `uv` to use/install a specific version, e.g. `uv run --python 3.10 python --version`.
+- Python version: Use a Python 3.10+ interpreter. If needed, you can direct `uv` to use/install a specific version, e.g. `uv run --python 3.10 python --version`.
 - The `.venv/` folder is already ignored by `.gitignore`.
 
 **Start the app**

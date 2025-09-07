@@ -1,7 +1,5 @@
 import io
-import requests
 from typing import List, Optional
-from django.db import connection, transaction
 from psycopg2.extras import RealDictCursor
 
 from common.database import db_postgres_conn
@@ -41,12 +39,11 @@ def refresh_resale_transaction_table() -> int:
     download_url = get_download_url("d_8b84c4ee58e3cfc0ece0d773c8ca6abc")
     csv_bytes = download_bytes(download_url)
 
-    # Use DB transaction to make the swap atomic
-    with transaction.atomic():
-        with connection.cursor() as cur:
-            # 1) Create staging (drop if exists)
+    # Use a single psycopg2 connection to ensure atomic swap
+    with db_postgres_conn() as conn:
+        with conn.cursor() as cur:
+            # 1) Create staging (drop if exists). Use a temporary table scoped to this connection
             cur.execute(f"DROP TABLE IF EXISTS {STAGING_TABLE};")
-            # Define explicit types to match your table. Adjust if needed.
             cur.execute(f"""
                 CREATE TEMP TABLE {STAGING_TABLE} (
                     month TEXT,

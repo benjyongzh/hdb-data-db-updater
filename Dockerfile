@@ -6,7 +6,6 @@ WORKDIR /app
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     libpq-dev gcc postgresql-client \
-    binutils libproj-dev gdal-bin \
     && apt-get clean
 
 # Install Python dependencies
@@ -17,8 +16,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Set environment variables
-ENV PYTHONUNBUFFERED 1
-ENV DJANGO_SETTINGS_MODULE myproject.settings
+ENV PYTHONUNBUFFERED=1
 
-# Run migrations and start the server
-CMD ["sh", "-c", "python manage.py migrate && gunicorn myproject.wsgi:application --bind 0.0.0.0:8000"]
+# Start FastAPI with Uvicorn
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
