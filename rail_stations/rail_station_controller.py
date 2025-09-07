@@ -10,7 +10,7 @@ from rail_stations.rail_station_service import (
 from tasks.jobs import refresh_rail_stations_task
 
 
-router = APIRouter(prefix="/api/rail-stations", tags=["rail-stations"])
+router = APIRouter(prefix="/rail-stations", tags=["rail-stations"])
 
 
 @router.get("/", response_model=List[RailStation])

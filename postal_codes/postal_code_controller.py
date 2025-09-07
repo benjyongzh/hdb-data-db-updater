@@ -11,7 +11,7 @@ from postal_codes.postal_code_service import (
 from tasks.jobs import link_resale_to_postal_codes_task
 
 
-router = APIRouter(prefix="/api/postal-codes", tags=["postal-codes"])
+router = APIRouter(prefix="/postal-codes", tags=["postal-codes"])
 
 
 @router.get("/", response_model=List[PostalCode])

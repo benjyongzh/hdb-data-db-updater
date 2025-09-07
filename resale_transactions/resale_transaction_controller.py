@@ -17,7 +17,7 @@ except Exception:
     pass
 
 
-router = APIRouter(prefix="/api/resale-transactions", tags=["resale-transactions"])
+router = APIRouter(prefix="/resale-transactions", tags=["resale-transactions"])
 
 
 @router.get("/", response_model=List[ResaleTransaction])

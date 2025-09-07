@@ -10,7 +10,7 @@ from building_polygons.building_polygon_service import (
 from tasks.jobs import refresh_building_polygons_task
 
 
-router = APIRouter(prefix="/api/building-polygons", tags=["building-polygons"])
+router = APIRouter(prefix="/building-polygons", tags=["building-polygons"])
 
 
 @router.get("/", response_model=List[BuildingPolygon])

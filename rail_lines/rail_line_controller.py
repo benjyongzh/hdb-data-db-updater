@@ -10,7 +10,7 @@ from rail_lines.rail_line_service import (
 from tasks.jobs import refresh_rail_lines_task
 
 
-router = APIRouter(prefix="/api/rail-lines", tags=["rail-lines"])
+router = APIRouter(prefix="/rail-lines", tags=["rail-lines"])
 
 
 @router.get("/", response_model=List[RailLine])

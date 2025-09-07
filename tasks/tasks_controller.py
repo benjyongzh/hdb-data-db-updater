@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 from celery_app import celery
 
 
-router = APIRouter(prefix="/api/tasks", tags=["tasks"])
+router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 
 @router.get("/{task_id}")

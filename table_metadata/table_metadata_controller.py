@@ -13,7 +13,7 @@ from table_metadata.table_metadata_service import (
 )
 
 
-router = APIRouter(prefix="/api/table-metadata", tags=["table-metadata"])
+router = APIRouter(prefix="/table-metadata", tags=["table-metadata"])
 
 
 @router.get("/", response_model=List[TableMetadata])
