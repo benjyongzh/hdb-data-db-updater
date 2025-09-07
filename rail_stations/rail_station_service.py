@@ -140,6 +140,8 @@ def refresh_rail_stations_table() -> int:
     # 2) Replace table contents atomically and touch metadata
     with db_postgres_conn() as conn:
         with conn.cursor() as cur:
+            # Truncate link table first due to FK to stations, then stations
+            cur.execute(f"TRUNCATE TABLE {LINK_TABLE} RESTART IDENTITY;")
             cur.execute(f"TRUNCATE TABLE {MAIN_TABLE} RESTART IDENTITY;")
             if rows:
                 cur.executemany(

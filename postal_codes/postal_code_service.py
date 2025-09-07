@@ -268,8 +268,29 @@ def reset_postal_codes(mode: str = "clear-links") -> Dict[str, int]:
     summary = {"links_cleared": 0, "table_truncated": 0}
     with db_postgres_conn() as conn:
         with conn.cursor() as cur:
+            # Clear FK from resale_transactions first
             cur.execute(
                 f"UPDATE {RESALE_TRANSACTIONS_TABLE} SET {fk_col} = NULL WHERE {fk_col} IS NOT NULL"
+            )
+            # Also clear FK from building_polygons if that table/column exists
+            bp_table = os.getenv("BUILDING_POLYGONS_TABLE", "building_polygons")
+            cur.execute(
+                """
+                DO $$
+                DECLARE
+                    tbl text := %s;
+                BEGIN
+                    IF EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_schema = 'public'
+                          AND table_name = tbl
+                          AND column_name = 'postal_code_key_id'
+                    ) THEN
+                        EXECUTE format('UPDATE %I SET postal_code_key_id = NULL WHERE postal_code_key_id IS NOT NULL', tbl);
+                    END IF;
+                END $$;
+                """,
+                [bp_table],
             )
             summary["links_cleared"] = 1
 
