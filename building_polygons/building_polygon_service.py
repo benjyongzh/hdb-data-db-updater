@@ -1,4 +1,5 @@
 import json
+import os
 from typing import Any, Dict, List, Optional, Tuple
 from psycopg2.extras import RealDictCursor
 
@@ -13,6 +14,7 @@ from common.util.download_dataset import (
 from table_metadata.table_metadata_service import touch_table_metadata
 
 TABLE_NAME = table_name_from_folder(__file__, override_env_var="BUILDING_POLYGONS_TABLE")
+POSTAL_CODES_TABLE = os.getenv("POSTAL_CODES_TABLE", "postal_codes")
 
 
 def list_building_polygons(
@@ -183,3 +185,24 @@ def refresh_building_polygon_table() -> int:
     except Exception:
         pass
     return inserted
+
+
+def link_all_building_polygons_to_postal_codes() -> int:
+    """Link building polygons to postal codes by matching postal code strings.
+
+    Sets `postal_code_key_id` on `building_polygons` where it is NULL, by joining
+    to `postal_codes` on exact match of `postal_code` text.
+
+    Returns the number of rows updated (linked).
+    """
+    sql = f"""
+        UPDATE {TABLE_NAME} AS bp
+        SET postal_code_key_id = pc.id
+        FROM {POSTAL_CODES_TABLE} AS pc
+        WHERE bp.postal_code_key_id IS NULL
+          AND bp.postal_code = pc.postal_code
+    """
+    with db_postgres_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(sql)
+            return cur.rowcount or 0

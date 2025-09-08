@@ -48,6 +48,7 @@ CREATE TABLE IF NOT EXISTS building_polygons (
 
 CREATE INDEX IF NOT EXISTS idx_building_polygons_block_ci ON building_polygons (LOWER(block));
 CREATE INDEX IF NOT EXISTS idx_building_polygons_postal_code ON building_polygons (postal_code);
+CREATE INDEX IF NOT EXISTS idx_building_polygons_postal_fk ON building_polygons (postal_code_key_id);
 CREATE INDEX IF NOT EXISTS idx_building_polygons_geom ON building_polygons USING GIST (building_polygon);
 
 -- rail_stations (renamed from mrt_stations)
