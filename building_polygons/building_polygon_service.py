@@ -20,6 +20,7 @@ POSTAL_CODES_TABLE = os.getenv("POSTAL_CODES_TABLE", "postal_codes")
 def list_building_polygons(
     block: Optional[str] = None,
     postal_code: Optional[str] = None,
+    simplify: float = 1.0,
     limit: int = 100,
     offset: int = 0,
 ) -> List[Dict[str, Any]]:
@@ -35,19 +36,54 @@ def list_building_polygons(
 
     sql = f"""
         SELECT id, block, postal_code, postal_code_key_id,
-               ST_AsGeoJSON(building_polygon) AS building_polygon
+               ST_AsGeoJSON(ST_Simplify(building_polygon, %s)) AS building_polygon
         FROM {TABLE_NAME}
         {where_sql}
         ORDER BY id
         LIMIT %s OFFSET %s
     """
-    params.extend([limit, offset])
+    params.extend([simplify, limit, offset])
 
     with db_postgres_conn() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(sql, params)
             rows = cur.fetchall()
             # Convert geometry string to JSON
+            for r in rows:
+                if isinstance(r.get("building_polygon"), str):
+                    r["building_polygon"] = json.loads(r["building_polygon"])  # type: ignore
+            return rows
+
+
+def list_all_building_polygons(
+    block: Optional[str] = None,
+    postal_code: Optional[str] = None,
+    simplify: float = 1.0,
+) -> List[Dict[str, Any]]:
+    where = []
+    params: List[Any] = []
+    if block:
+        where.append("LOWER(block) = LOWER(%s)")
+        params.append(block)
+    if postal_code:
+        where.append("postal_code = %s")
+        params.append(postal_code)
+    where_sql = f"WHERE {' AND '.join(where)}" if where else ""
+
+    sql = f"""
+        SELECT id, block, postal_code, postal_code_key_id,
+               ST_AsGeoJSON(ST_Simplify(building_polygon, %s)) AS building_polygon
+        FROM {TABLE_NAME}
+        {where_sql}
+        ORDER BY id
+    """
+
+    params.append(simplify)
+
+    with db_postgres_conn() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(sql, params)
+            rows = cur.fetchall()
             for r in rows:
                 if isinstance(r.get("building_polygon"), str):
                     r["building_polygon"] = json.loads(r["building_polygon"])  # type: ignore
