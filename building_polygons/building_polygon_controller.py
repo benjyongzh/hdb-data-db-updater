@@ -7,6 +7,7 @@ from building_polygons.building_polygon_service import (
     get_building_polygon_by_id,
     list_building_polygons,
     count_building_polygons,
+    list_all_building_polygons,
 )
 from tasks.jobs import refresh_building_polygons_task
 from common.response import success_response, error_response
@@ -20,12 +21,14 @@ router = APIRouter(prefix="/building-polygons", tags=["building-polygons"])
 def list_polygons(
     block: Optional[str] = Query(None),
     postal_code: Optional[str] = Query(None),
+    simplify: float = Query(1.0, ge=0.0),
     paging: Dict[str, int] = Depends(pagination_params),
 ):
     try:
         rows = list_building_polygons(
             block=block,
             postal_code=postal_code,
+            simplify=simplify,
             limit=paging["limit"],
             offset=paging["offset"],
         )
@@ -35,6 +38,22 @@ def list_polygons(
             page=paging["page"], page_size=paging["page_size"], total=total, count=len(items)
         )
         return success_response(items, pagination=meta)
+    except Exception as e:
+        return error_response(500, str(e))
+
+
+@router.get("/all")
+def list_all_polygons(
+    block: Optional[str] = Query(None),
+    postal_code: Optional[str] = Query(None),
+    simplify: float = Query(1.0, ge=0.0),
+):
+    try:
+        rows = list_all_building_polygons(
+            block=block, postal_code=postal_code, simplify=simplify
+        )
+        items = [BuildingPolygon(**r) for r in rows]
+        return success_response(items)
     except Exception as e:
         return error_response(500, str(e))
 
