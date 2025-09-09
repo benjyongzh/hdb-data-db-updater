@@ -13,7 +13,12 @@ primary_region = "sin"  # Singapore; change to your nearest region
 
 [processes]
   # Single-concurrency worker to respect OneMap rate limits and keep memory stable
-  worker = "celery -A celery_app.celery worker -l info -c 1 --time-limit 3600 --maxtasksperchild 10"
+  # Celery 5+ uses --max-tasks-per-child (with hyphens)
+  # Use solo pool to reduce memory overhead on small machines. Note: time limits do not
+  # work with the solo pool, but we keep the flag for future switches.
+  # Disable gossip/mingle to reduce Redis PUB/SUB chatter and startup coordination traffic
+  # Heartbeat interval is set in code via WORKER_HEARTBEAT env (default 60s)
+  worker = "celery -A celery_app.celery worker -P solo -l info -c 1 --prefetch-multiplier=1 --max-tasks-per-child 10 --without-gossip --without-mingle --without-heartbeat"
 
 # No network services exposed; this app is a background worker only.
 # Set secrets before deploy:
@@ -27,7 +32,7 @@ primary_region = "sin"  # Singapore; change to your nearest region
 
 [vm]
   # shared-cpu-1x with 256MB memory (1GB is usually sufficient)
-  memory = 256
+  memory = 512
   cpu_kind = "shared"
   cpus = 1
 

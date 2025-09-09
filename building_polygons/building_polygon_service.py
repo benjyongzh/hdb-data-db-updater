@@ -1,4 +1,5 @@
 import json
+import os
 from typing import Any, Dict, List, Optional, Tuple
 from psycopg2.extras import RealDictCursor
 
@@ -13,6 +14,7 @@ from common.util.download_dataset import (
 from table_metadata.table_metadata_service import touch_table_metadata
 
 TABLE_NAME = table_name_from_folder(__file__, override_env_var="BUILDING_POLYGONS_TABLE")
+POSTAL_CODES_TABLE = os.getenv("POSTAL_CODES_TABLE", "postal_codes")
 
 
 def list_building_polygons(
@@ -50,6 +52,26 @@ def list_building_polygons(
                 if isinstance(r.get("building_polygon"), str):
                     r["building_polygon"] = json.loads(r["building_polygon"])  # type: ignore
             return rows
+
+
+def count_building_polygons(
+    block: Optional[str] = None,
+    postal_code: Optional[str] = None,
+) -> int:
+    where = []
+    params: List[Any] = []
+    if block:
+        where.append("LOWER(block) = LOWER(%s)")
+        params.append(block)
+    if postal_code:
+        where.append("postal_code = %s")
+        params.append(postal_code)
+    where_sql = f"WHERE {' AND '.join(where)}" if where else ""
+    sql = f"SELECT COUNT(*) FROM {TABLE_NAME} {where_sql}"
+    with db_postgres_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(sql, params)
+            return int(cur.fetchone()[0])
 
 
 def get_building_polygon_by_id(item_id: int) -> Optional[Dict[str, Any]]:
@@ -92,43 +114,59 @@ def refresh_building_polygon_table() -> int:
         raise RuntimeError("Expected a GeoJSON FeatureCollection")
 
     features = geojson.get("features") or []
-    rows: List[Tuple[str, str, str]] = []  # (block, postal_code, geom_json_text)
 
-    for feat in features:
-        if not isinstance(feat, dict):
-            continue
-        props = feat.get("properties") or {}
-        geom = feat.get("geometry") or {}
-
-        # Parse attributes from Description HTML
-        desc = (props or {}).get("Description") or ""
-        meta = parse_description(desc) if isinstance(desc, str) else {}
-        block = meta.get("BLK_NO") or meta.get("BLK NO") or meta.get("BLK_NO".lower()) or meta.get("BLK NO".lower())
-        postal_code = meta.get("POSTAL_COD") or meta.get("POSTAL COD") or meta.get("POSTAL_COD".lower()) or meta.get("POSTAL COD".lower())
-
-        if not block or not postal_code:
-            # Skip features without required metadata
-            continue
-
-        # Ensure geometry is a Polygon (or MultiPolygon) and strip Z
-        if not isinstance(geom, dict) or "type" not in geom or "coordinates" not in geom:
-            continue
-        gtype = geom.get("type")
-        coords = geom.get("coordinates")
-        if gtype == "Polygon" and isinstance(coords, list):
-            coords2d = strip_z_polygon_coords(coords)  # type: ignore[arg-type]
-            cleaned_geom = {"type": "Polygon", "coordinates": coords2d}
-        else:
-            # unsupported geometry type
-            continue
-
-        rows.append((str(block), str(postal_code), json.dumps(cleaned_geom)))
-
-    # 2) Replace table contents atomically
+    # 2) Replace table contents atomically; insert rows in batches to limit memory usage
     with db_postgres_conn() as conn:
         with conn.cursor() as cur:
             cur.execute(f"TRUNCATE TABLE {TABLE_NAME} RESTART IDENTITY;")
-            if rows:
+            batch: List[Tuple[str, str, str]] = []
+            BATCH_SIZE = 500
+            inserted = 0
+            for feat in features:
+                if not isinstance(feat, dict):
+                    continue
+                props = feat.get("properties") or {}
+                geom = feat.get("geometry") or {}
+
+                # Parse attributes from Description HTML
+                desc = (props or {}).get("Description") or ""
+                meta = parse_description(desc) if isinstance(desc, str) else {}
+                block = meta.get("BLK_NO") or meta.get("BLK NO") or meta.get("BLK_NO".lower()) or meta.get("BLK NO".lower())
+                postal_code = meta.get("POSTAL_COD") or meta.get("POSTAL COD") or meta.get("POSTAL_COD".lower()) or meta.get("POSTAL COD".lower())
+
+                if not block or not postal_code:
+                    # Skip features without required metadata
+                    continue
+
+                # Ensure geometry is a Polygon and strip Z
+                if not isinstance(geom, dict) or "type" not in geom or "coordinates" not in geom:
+                    continue
+                gtype = geom.get("type")
+                coords = geom.get("coordinates")
+                if gtype == "Polygon" and isinstance(coords, list):
+                    coords2d = strip_z_polygon_coords(coords)  # type: ignore[arg-type]
+                    cleaned_geom = {"type": "Polygon", "coordinates": coords2d}
+                else:
+                    continue
+
+                batch.append((str(block), str(postal_code), json.dumps(cleaned_geom)))
+
+                if len(batch) >= BATCH_SIZE:
+                    cur.executemany(
+                        f"""
+                        INSERT INTO {TABLE_NAME} (block, postal_code, building_polygon)
+                        VALUES (
+                            %s,
+                            %s,
+                            ST_SetSRID(ST_GeomFromGeoJSON(%s), 4326)
+                        )
+                        """,
+                        batch,
+                    )
+                    inserted += len(batch)
+                    batch.clear()
+
+            if batch:
                 cur.executemany(
                     f"""
                     INSERT INTO {TABLE_NAME} (block, postal_code, building_polygon)
@@ -138,11 +176,33 @@ def refresh_building_polygon_table() -> int:
                         ST_SetSRID(ST_GeomFromGeoJSON(%s), 4326)
                     )
                     """,
-                    rows,
+                    batch,
                 )
+                inserted += len(batch)
     # Touch table metadata after successful refresh (best-effort)
     try:
         touch_table_metadata(table_name=TABLE_NAME)
     except Exception:
         pass
-    return len(rows)
+    return inserted
+
+
+def link_all_building_polygons_to_postal_codes() -> int:
+    """Link building polygons to postal codes by matching postal code strings.
+
+    Sets `postal_code_key_id` on `building_polygons` where it is NULL, by joining
+    to `postal_codes` on exact match of `postal_code` text.
+
+    Returns the number of rows updated (linked).
+    """
+    sql = f"""
+        UPDATE {TABLE_NAME} AS bp
+        SET postal_code_key_id = pc.id
+        FROM {POSTAL_CODES_TABLE} AS pc
+        WHERE bp.postal_code_key_id IS NULL
+          AND bp.postal_code = pc.postal_code
+    """
+    with db_postgres_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(sql)
+            return cur.rowcount or 0

@@ -50,6 +50,30 @@ def list_postal_codes(
             return cur.fetchall()
 
 
+def count_postal_codes(
+    block: Optional[str] = None,
+    street_name: Optional[str] = None,
+    postal_code: Optional[str] = None,
+) -> int:
+    where = []
+    params: List[Any] = []
+    if block:
+        where.append("LOWER(block) = LOWER(%s)")
+        params.append(block)
+    if street_name:
+        where.append("LOWER(street_name) = LOWER(%s)")
+        params.append(street_name)
+    if postal_code:
+        where.append("postal_code = %s")
+        params.append(postal_code)
+    where_sql = f"WHERE {' AND '.join(where)}" if where else ""
+    sql = f"SELECT COUNT(*) FROM {TABLE_NAME} {where_sql}"
+    with db_postgres_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(sql, params)
+            return int(cur.fetchone()[0])
+
+
 def get_postal_code_by_id(item_id: int) -> Optional[Dict[str, Any]]:
     sql = f"""
         SELECT id, block, street_name, postal_code
@@ -268,8 +292,29 @@ def reset_postal_codes(mode: str = "clear-links") -> Dict[str, int]:
     summary = {"links_cleared": 0, "table_truncated": 0}
     with db_postgres_conn() as conn:
         with conn.cursor() as cur:
+            # Clear FK from resale_transactions first
             cur.execute(
                 f"UPDATE {RESALE_TRANSACTIONS_TABLE} SET {fk_col} = NULL WHERE {fk_col} IS NOT NULL"
+            )
+            # Also clear FK from building_polygons if that table/column exists
+            bp_table = os.getenv("BUILDING_POLYGONS_TABLE", "building_polygons")
+            cur.execute(
+                """
+                DO $$
+                DECLARE
+                    tbl text := %s;
+                BEGIN
+                    IF EXISTS (
+                        SELECT 1 FROM information_schema.columns
+                        WHERE table_schema = 'public'
+                          AND table_name = tbl
+                          AND column_name = 'postal_code_key_id'
+                    ) THEN
+                        EXECUTE format('UPDATE %I SET postal_code_key_id = NULL WHERE postal_code_key_id IS NOT NULL', tbl);
+                    END IF;
+                END $$;
+                """,
+                [bp_table],
             )
             summary["links_cleared"] = 1
 

@@ -1,43 +1,59 @@
-from typing import List, Optional
+from typing import List, Optional, Dict
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Query, Depends
 
 from rail_stations.rail_station import RailStation
 from rail_stations.rail_station_service import (
     list_rail_stations,
     get_rail_station_by_id,
+    count_rail_stations,
 )
 from tasks.jobs import refresh_rail_stations_task
+from common.response import success_response, error_response
+from common.pagination import pagination_params, build_pagination_meta
 
 
-router = APIRouter(prefix="/api/rail-stations", tags=["rail-stations"])
+router = APIRouter(prefix="/rail-stations", tags=["rail-stations"])
 
 
-@router.get("/", response_model=List[RailStation])
+@router.get("/")
 def list_stations(
     name: Optional[str] = Query(None),
     ground_level: Optional[str] = Query(None),
-    limit: int = Query(100, ge=1, le=1000),
-    offset: int = Query(0, ge=0),
+    paging: Dict[str, int] = Depends(pagination_params),
 ):
-    rows = list_rail_stations(
-        name=name,
-        ground_level=ground_level,
-        limit=limit,
-        offset=offset,
-    )
-    return [RailStation(**r) for r in rows]
+    try:
+        rows = list_rail_stations(
+            name=name,
+            ground_level=ground_level,
+            limit=paging["limit"],
+            offset=paging["offset"],
+        )
+        items = [RailStation(**r) for r in rows]
+        total = count_rail_stations(name=name, ground_level=ground_level)
+        meta = build_pagination_meta(
+            page=paging["page"], page_size=paging["page_size"], total=total, count=len(items)
+        )
+        return success_response(items, pagination=meta)
+    except Exception as e:
+        return error_response(500, str(e))
 
 
-@router.get("/{item_id}", response_model=RailStation)
+@router.get("/{item_id}")
 def get_station(item_id: int):
-    row = get_rail_station_by_id(item_id)
-    if not row:
-        raise HTTPException(status_code=404, detail="Not found")
-    return RailStation(**row)
+    try:
+        row = get_rail_station_by_id(item_id)
+        if not row:
+            return error_response(404, "Not found")
+        return success_response(RailStation(**row))
+    except Exception as e:
+        return error_response(500, str(e))
 
 
 @router.post("/refresh")
 def refresh():
-    result = refresh_rail_stations_task.delay()
-    return {"task_id": result.id}
+    try:
+        result = refresh_rail_stations_task.delay()
+        return success_response({"task_id": result.id})
+    except Exception as e:
+        return error_response(500, str(e))

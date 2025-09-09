@@ -77,7 +77,8 @@ def refresh_rail_lines_table() -> int:
 
     with db_postgres_conn() as conn:
         with conn.cursor() as cur:
-            cur.execute(f"TRUNCATE TABLE {TABLE_NAME} RESTART IDENTITY;")
+            # Truncate rail_lines and any dependent rows (e.g., rail_stations_lines)
+            cur.execute(f"TRUNCATE TABLE {TABLE_NAME} RESTART IDENTITY CASCADE;")
             if rows:
                 cur.executemany(
                     f"""

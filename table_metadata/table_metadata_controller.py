@@ -1,6 +1,6 @@
 from typing import List
 
-from fastapi import APIRouter, HTTPException, Body, Query
+from fastapi import APIRouter, Body, Query
 
 from table_metadata.table_metadata import (
     TableMetadata,
@@ -11,33 +11,40 @@ from table_metadata.table_metadata_service import (
     get_table_metadata_by_id,
     touch_table_metadata,
 )
+from common.response import success_response, error_response
 
 
-router = APIRouter(prefix="/api/table-metadata", tags=["table-metadata"])
+router = APIRouter(prefix="/table-metadata", tags=["table-metadata"])
 
 
-@router.get("/", response_model=List[TableMetadata])
+@router.get("/")
 def list_metadata(limit: int = Query(100, ge=1, le=1000), offset: int = Query(0, ge=0)):
-    rows = list_table_metadata(limit=limit, offset=offset)
-    return [TableMetadata(**r) for r in rows]
+    try:
+        rows = list_table_metadata(limit=limit, offset=offset)
+        return success_response([TableMetadata(**r) for r in rows])
+    except Exception as e:
+        return error_response(500, str(e))
 
 
-@router.get("/{item_id}", response_model=TableMetadata)
+@router.get("/{item_id}")
 def get_metadata(item_id: int):
-    row = get_table_metadata_by_id(item_id)
-    if not row:
-        raise HTTPException(status_code=404, detail="Not found")
-    return TableMetadata(**row)
+    try:
+        row = get_table_metadata_by_id(item_id)
+        if not row:
+            return error_response(404, "Not found")
+        return success_response(TableMetadata(**row))
+    except Exception as e:
+        return error_response(500, str(e))
 
 
-@router.post("/touch", response_model=TableMetadata)
+@router.post("/touch")
 def touch_metadata(payload: TableMetadataTouchRequest = Body(...)):
     try:
         payload.require_one()
         row = touch_table_metadata(table_id=payload.table_id, table_name=payload.table_name)
-        return TableMetadata(**row)
+        return success_response(TableMetadata(**row))
     except ValueError as ve:
-        raise HTTPException(status_code=400, detail=str(ve))
+        return error_response(400, str(ve))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return error_response(500, str(e))
 

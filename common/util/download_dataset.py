@@ -1,7 +1,8 @@
 import requests
 from requests.exceptions import HTTPError
 import re
-from typing import Dict, List
+from typing import Dict, List, BinaryIO
+import tempfile
 
 
 def get_download_url(dataset_id) -> str:
@@ -25,6 +26,22 @@ def download_bytes(download_url: str) -> bytes:
     r = requests.get(download_url, timeout=60)
     r.raise_for_status()
     return r.content  # CSV bytes
+
+
+def download_to_file(download_url: str, dest_file: BinaryIO, chunk_size: int = 1024 * 1024) -> int:
+    """Stream download into an open binary file-like object.
+
+    Returns total bytes written. Caller is responsible for closing the file.
+    """
+    with requests.get(download_url, stream=True, timeout=120) as r:
+        r.raise_for_status()
+        total = 0
+        for chunk in r.iter_content(chunk_size=chunk_size):
+            if not chunk:
+                continue
+            dest_file.write(chunk)
+            total += len(chunk)
+        return total
 
 
 def parse_description(desc_html: str) -> Dict[str, str]:

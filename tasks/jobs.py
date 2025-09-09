@@ -9,6 +9,7 @@ from resale_transactions.resale_transaction_service import (
 )
 from building_polygons.building_polygon_service import (
     refresh_building_polygon_table,
+    link_all_building_polygons_to_postal_codes,
 )
 from rail_stations.rail_station_service import (
     refresh_rail_stations_table,
@@ -32,7 +33,8 @@ def refresh_resale_transactions_task() -> Dict[str, Any]:
 @celery.task(name="refresh_building_polygons")
 def refresh_building_polygons_task() -> Dict[str, Any]:
     count = refresh_building_polygon_table()
-    return {"inserted": count}
+    linked = link_all_building_polygons_to_postal_codes()
+    return {"inserted": count, "linked": linked}
 
 
 @celery.task(name="refresh_rail_stations")

@@ -62,6 +62,26 @@ def list_rail_stations(
             return rows
 
 
+def count_rail_stations(
+    name: Optional[str] = None,
+    ground_level: Optional[str] = None,
+) -> int:
+    where = []
+    params: List[Any] = []
+    if name:
+        where.append("LOWER(s.name) LIKE LOWER(%s)")
+        params.append(f"%{name}%")
+    if ground_level:
+        where.append("LOWER(s.ground_level) = LOWER(%s)")
+        params.append(ground_level)
+    where_sql = f"WHERE {' AND '.join(where)}" if where else ""
+    sql = f"SELECT COUNT(*) FROM {MAIN_TABLE} AS s {where_sql}"
+    with db_postgres_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(sql, params)
+            return int(cur.fetchone()[0])
+
+
 def get_rail_station_by_id(item_id: int) -> Optional[Dict[str, Any]]:
     sql = f"""
         SELECT s.id,
@@ -106,42 +126,60 @@ def refresh_rail_stations_table() -> int:
         raise RuntimeError("Expected a GeoJSON FeatureCollection")
 
     features = geojson.get("features") or []
-    rows: List[Tuple[str, str, str]] = []  # (name, ground_level, geom_json_text)
-
-    for feat in features:
-        if not isinstance(feat, dict):
-            continue
-        props = feat.get("properties") or {}
-        geom = feat.get("geometry") or {}
-
-        # Parse attributes from Description HTML
-        desc = (props or {}).get("Description") or ""
-        meta = parse_description(desc) if isinstance(desc, str) else {}
-        name = meta.get("NAME") or meta.get("name")
-        ground_level = meta.get("GRND_LEVEL") or meta.get("GRND LEVEL") or meta.get("grnd_level")
-
-        if not name or not ground_level:
-            # Skip features without required metadata
-            continue
-
-        # Ensure geometry is a Polygon and strip Z
-        if not isinstance(geom, dict) or "type" not in geom or "coordinates" not in geom:
-            continue
-        gtype = geom.get("type")
-        coords = geom.get("coordinates")
-        if gtype == "Polygon" and isinstance(coords, list):
-            coords2d = strip_z_polygon_coords(coords)  # type: ignore[arg-type]
-            cleaned_geom = {"type": "Polygon", "coordinates": coords2d}
-        else:
-            continue
-
-        rows.append((str(name), str(ground_level), json.dumps(cleaned_geom)))
 
     # 2) Replace table contents atomically and touch metadata
     with db_postgres_conn() as conn:
         with conn.cursor() as cur:
+            # Truncate link table first due to FK to stations, then stations
+            cur.execute(f"TRUNCATE TABLE {LINK_TABLE} RESTART IDENTITY;")
             cur.execute(f"TRUNCATE TABLE {MAIN_TABLE} RESTART IDENTITY;")
-            if rows:
+            # Insert in batches to limit memory usage
+            batch: List[Tuple[str, str, str]] = []
+            BATCH_SIZE = 500
+            inserted = 0
+            for feat in features:
+                if not isinstance(feat, dict):
+                    continue
+                props = feat.get("properties") or {}
+                geom = feat.get("geometry") or {}
+
+                # Parse attributes from Description HTML
+                desc = (props or {}).get("Description") or ""
+                meta = parse_description(desc) if isinstance(desc, str) else {}
+                name = meta.get("NAME") or meta.get("name")
+                ground_level = meta.get("GRND_LEVEL") or meta.get("GRND LEVEL") or meta.get("grnd_level")
+
+                if not name or not ground_level:
+                    continue
+
+                if not isinstance(geom, dict) or "type" not in geom or "coordinates" not in geom:
+                    continue
+                gtype = geom.get("type")
+                coords = geom.get("coordinates")
+                if gtype == "Polygon" and isinstance(coords, list):
+                    coords2d = strip_z_polygon_coords(coords)  # type: ignore[arg-type]
+                    cleaned_geom = {"type": "Polygon", "coordinates": coords2d}
+                else:
+                    continue
+
+                batch.append((str(name), str(ground_level), json.dumps(cleaned_geom)))
+
+                if len(batch) >= BATCH_SIZE:
+                    cur.executemany(
+                        f"""
+                        INSERT INTO {MAIN_TABLE} (name, ground_level, building_polygon)
+                        VALUES (
+                            %s,
+                            %s,
+                            ST_SetSRID(ST_GeomFromGeoJSON(%s), 4326)
+                        )
+                        """,
+                        batch,
+                    )
+                    inserted += len(batch)
+                    batch.clear()
+
+            if batch:
                 cur.executemany(
                     f"""
                     INSERT INTO {MAIN_TABLE} (name, ground_level, building_polygon)
@@ -151,8 +189,9 @@ def refresh_rail_stations_table() -> int:
                         ST_SetSRID(ST_GeomFromGeoJSON(%s), 4326)
                     )
                     """,
-                    rows,
+                    batch,
                 )
+                inserted += len(batch)
 
             # 3) Refresh join table based on static STATIONS mapping
             # Build lookup maps: station name -> id, line abbr -> id
@@ -191,4 +230,4 @@ def refresh_rail_stations_table() -> int:
     except Exception:
         pass
 
-    return len(rows)
+    return inserted
