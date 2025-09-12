@@ -1,7 +1,8 @@
 import io
 import os
+import json
 import tempfile
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from psycopg2.extras import RealDictCursor
 
 from common.database import db_postgres_conn
@@ -212,3 +213,78 @@ def get_resale_transaction_by_id(item_id: int) -> Optional[ResaleTransaction]:
             cur.execute(sql, [item_id])
             row = cur.fetchone()
             return ResaleTransaction(**row) if row else None
+
+
+# GeoJSON aggregation over building polygons with latest transactions per grouping
+def get_building_polygons_with_latest_transactions(
+    simplify: float = 1.0,
+) -> List[Dict[str, Any]]:
+    """Return GeoJSON Feature objects per building polygon with latest transactions.
+
+    For each building polygon, simplify its geometry and attach a transactions array
+    consisting of the latest row (max id) for each distinct combination of
+    (block, flat_type, street_name, postal_code_key_id, storey_range, floor_area_sqm, flat_model)
+    that matches the polygon's block and postal_code (via FK equality).
+    """
+    bp_table = os.getenv("BUILDING_POLYGONS_TABLE", "building_polygons")
+
+    sql = f"""
+        WITH latest AS (
+            SELECT DISTINCT ON (block, flat_type, street_name, postal_code_key_id, storey_range, floor_area_sqm, flat_model)
+                   id, block, flat_type, street_name, postal_code_key_id, storey_range, floor_area_sqm, flat_model, resale_price
+            FROM {TARGET_TABLE}
+            ORDER BY block, flat_type, street_name, postal_code_key_id, storey_range, floor_area_sqm, flat_model, id DESC
+        )
+        SELECT
+            bp.id AS bp_id,
+            ST_AsGeoJSON(ST_Simplify(bp.building_polygon, %s)) AS geometry,
+            COALESCE(
+              json_agg(
+                json_build_object(
+                  'flat_type', l.flat_type,
+                  'storey_range', l.storey_range,
+                  'floor_area_sqm', l.floor_area_sqm,
+                  'flat_model', l.flat_model,
+                  'resale_price', l.resale_price
+                )
+              ) FILTER (WHERE l.id IS NOT NULL),
+              '[]'::json
+            ) AS transactions
+        FROM {bp_table} AS bp
+        LEFT JOIN latest l
+          ON l.block = bp.block
+         AND l.postal_code_key_id IS NOT NULL
+         AND bp.postal_code_key_id IS NOT NULL
+         AND l.postal_code_key_id = bp.postal_code_key_id
+        GROUP BY bp_id, geometry
+        ORDER BY bp_id
+    """
+
+    with db_postgres_conn() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(sql, [simplify])
+            rows: List[Dict[str, Any]] = cur.fetchall()
+
+    features: List[Dict[str, Any]] = []
+    for r in rows:
+        geom = r.get("geometry")
+        if isinstance(geom, str):
+            try:
+                geom_json = json.loads(geom)
+            except Exception:
+                # Skip malformed geometry rows defensively
+                continue
+        else:
+            geom_json = geom
+
+        transactions = r.get("transactions") or []
+        feature = {
+            "type": "Feature",
+            "geometry": geom_json,
+            "properties": {
+                "transactions": transactions,
+            },
+        }
+        features.append(feature)
+
+    return features

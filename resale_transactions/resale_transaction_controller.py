@@ -6,6 +6,7 @@ from resale_transactions.resale_transaction_service import (
     get_resale_transactions,
     get_resale_transaction_by_id,
     count_resale_transactions,
+    get_building_polygons_with_latest_transactions,
 )
 from tasks.jobs import refresh_resale_transactions_task
 from common.response import success_response, error_response
@@ -74,5 +75,23 @@ def refresh_resale_transactions():
     try:
         async_result = refresh_resale_transactions_task.delay()
         return success_response({"task_id": async_result.id}, status_code=200)
+    except Exception as e:
+        return error_response(500, str(e))
+
+
+@router.get("/geojson-latest-by-polygon")
+def geojson_latest_by_polygon(
+    simplify: float = Query(1.0, ge=0.0),
+):
+    """Return GeoJSON Features of building polygons with latest distinct transactions.
+
+    - Geometry: simplified polygon from `building_polygons`.
+    - properties.transactions: array of distinct latest transactions per
+      (block, flat_type, street_name, postal_code_key_id, storey_range, floor_area_sqm, flat_model)
+      matching the polygon's block and postal code.
+    """
+    try:
+        items = get_building_polygons_with_latest_transactions(simplify=simplify)
+        return success_response(items, status_code=200)
     except Exception as e:
         return error_response(500, str(e))

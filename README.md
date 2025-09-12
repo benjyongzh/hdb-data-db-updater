@@ -47,6 +47,10 @@ Resale Transactions
 - Get by ID: `GET /api/resale-transactions/{id}`
 - Refresh table (non-blocking): `POST /api/resale-transactions/refresh` → `{ task_id }`
 
+ - GeoJSON by polygon (latest distinct): `GET /api/resale-transactions/geojson-latest-by-polygon`
+   - Query: `simplify` (float >= 0.0, default 1.0)
+   - Response: list of GeoJSON Feature objects per building polygon. Each feature has simplified geometry and properties.transactions with latest distinct transactions per (block, flat_type, street_name, postal_code_key_id, storey_range, floor_area_sqm, flat_model) that match the polygon's block and postal code.
+
 Postal Codes
 - List: `GET /api/postal-codes/`
   - Query: `block`, `street_name`, `postal_code`, `limit`, `offset`
@@ -59,6 +63,32 @@ Building Polygons
   - Query: `block`, `postal_code`, `limit`, `offset`
 - Get by ID: `GET /api/building-polygons/{id}`
 - Refresh table (non-blocking): `POST /api/building-polygons/refresh` → `{ task_id }`
+
+- All (non-paged): `GET /api/building-polygons/all`
+  - Query: `block`, `postal_code`, `simplify` (float >= 0.0, default 1.0)
+- Stream all (JSON stream): `GET /api/building-polygons/all/stream`
+  - Query: `block`, `postal_code`, `simplify` (float >= 0.0, default 1.0)
+  - Request body: none
+  - Headers: `Accept: application/json` (no `Content-Type` needed)
+  - Response: streamed JSON array `[<item1>,<item2>, ... ]` delivered in chunks
+  - Examples:
+    - `curl -N -H "Accept: application/json" "http://localhost:8000/api/building-polygons/all/stream?simplify=1.0"`
+    - JS fetch stream:
+
+```
+const res = await fetch('/api/building-polygons/all/stream?simplify=1.0', {
+  headers: { Accept: 'application/json' }
+});
+const reader = res.body.getReader();
+const decoder = new TextDecoder();
+let buf = '';
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+  buf += decoder.decode(value, { stream: true });
+}
+const data = JSON.parse(buf); // array of BuildingPolygon
+```
 
 Rail Stations
 - List: `GET /api/rail-stations/`
@@ -83,6 +113,8 @@ Examples
 - `curl "http://localhost:8000/api/resale-transactions/?town=ANG%20MO%20KIO&limit=5"`
 - `curl -X POST http://localhost:8000/api/rail-lines/refresh`
 - `curl http://localhost:8000/api/tasks/<task_id>`
+ - Stream building polygons: `curl -N -H "Accept: application/json" "http://localhost:8000/api/building-polygons/all/stream?simplify=1.0"`
+ - GeoJSON by polygon (latest): `curl "http://localhost:8000/api/resale-transactions/geojson-latest-by-polygon?simplify=1.0"`
 
 **Data Model**
 - Core tables and relationships (simplified):
