@@ -1,6 +1,7 @@
 from typing import List, Optional, Dict
 
 from fastapi import APIRouter, Query, Depends
+from fastapi.responses import StreamingResponse
 
 from building_polygons.building_polygon import BuildingPolygon
 from building_polygons.building_polygon_service import (
@@ -8,6 +9,7 @@ from building_polygons.building_polygon_service import (
     list_building_polygons,
     count_building_polygons,
     list_all_building_polygons,
+    stream_all_building_polygons,
 )
 from tasks.jobs import refresh_building_polygons_task
 from common.response import success_response, error_response
@@ -54,6 +56,35 @@ def list_all_polygons(
         )
         items = [BuildingPolygon(**r) for r in rows]
         return success_response(items)
+    except Exception as e:
+        return error_response(500, str(e))
+
+
+@router.get("/all/stream")
+def stream_all_polygons(
+    block: Optional[str] = Query(None),
+    postal_code: Optional[str] = Query(None),
+    simplify: float = Query(1.0, ge=0.0),
+):
+    try:
+        batches = stream_all_building_polygons(
+            block=block, postal_code=postal_code, simplify=simplify
+        )
+
+        def generate():
+            yield "["
+            first = True
+            for batch in batches:
+                items = [BuildingPolygon(**r).json() for r in batch]
+                chunk = ",".join(items)
+                if not first:
+                    yield ","
+                else:
+                    first = False
+                yield chunk
+            yield "]"
+
+        return StreamingResponse(generate(), media_type="application/json")
     except Exception as e:
         return error_response(500, str(e))
 

@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 from psycopg2.extras import RealDictCursor
 
 from common.database import db_postgres_conn
@@ -88,6 +88,52 @@ def list_all_building_polygons(
                 if isinstance(r.get("building_polygon"), str):
                     r["building_polygon"] = json.loads(r["building_polygon"])  # type: ignore
             return rows
+
+
+def stream_all_building_polygons(
+    block: Optional[str] = None,
+    postal_code: Optional[str] = None,
+    simplify: float = 1.0,
+    batch_size: int = 200,
+) -> Iterator[List[Dict[str, Any]]]:
+    where = []
+    params: List[Any] = []
+    if block:
+        where.append("LOWER(block) = LOWER(%s)")
+        params.append(block)
+    if postal_code:
+        where.append("postal_code = %s")
+        params.append(postal_code)
+    where_sql = f"WHERE {' AND '.join(where)}" if where else ""
+
+    sql = f"""
+        SELECT id, block, postal_code, postal_code_key_id,
+               ST_AsGeoJSON(ST_Simplify(building_polygon, %s)) AS building_polygon
+        FROM {TABLE_NAME}
+        {where_sql}
+        ORDER BY id
+    """
+
+    params.append(simplify)
+
+    conn = db_postgres_conn()
+    cur = conn.cursor(
+        name="building_polygons_stream", cursor_factory=RealDictCursor
+    )
+    cur.itersize = batch_size
+    try:
+        cur.execute(sql, params)
+        while True:
+            rows = cur.fetchmany(batch_size)
+            if not rows:
+                break
+            for r in rows:
+                if isinstance(r.get("building_polygon"), str):
+                    r["building_polygon"] = json.loads(r["building_polygon"])  # type: ignore
+            yield rows
+    finally:
+        cur.close()
+        conn.close()
 
 
 def count_building_polygons(
